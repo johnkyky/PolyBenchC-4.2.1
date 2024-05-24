@@ -24,10 +24,10 @@
  * See README or utilities/polybench.c for additional options.
  *
  */
-#ifndef POLYBENCH_H
-# define POLYBENCH_H
+#pragma once
 
 # include <stdlib.h>
+
 
 /* Array padding. By default, none is used. */
 # ifndef POLYBENCH_PADDING_FACTOR
@@ -236,6 +236,3 @@ extern void polybench_free_data(void* ptr);
 /* approaches. */
 extern void polybench_flush_cache();
 extern void polybench_prepare_instruments();
-
-
-#endif /* !POLYBENCH_H */

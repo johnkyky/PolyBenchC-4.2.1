@@ -1,0 +1,85 @@
+cmake_minimum_required(VERSION 3.28)
+
+project(PolyBench LANGUAGES CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(PB_TIME_MONITORING "Measure the execution time of the kernels" OFF)
+option(PB_CYCLE_MONITORING "Measure the number of cycles of the kernels" OFF)
+option(PB_NO_FLUSH_CACHE "Disable cache flushes" OFF)
+option(PB_LINUX_FIFO_SCHEDULER "Use the Linux FIFO scheduler" OFF)
+# cache size
+option(PB_STACK_ARRAYS "Use stack allocation arrays" OFF)
+option(PB_DUMP_ARRAYS "Dump the arrays on stderr" OFF)
+option(PB_PAPI "Use PAPI for performance timing" OFF)
+option(PB_USE_C99 "Use standard C99 prototype for the functions" OFF)
+option(PB_USE_SCALAR_LB "Use scalar loop bounds instead of parametric ones" OFF)
+option(PB_KOKKOS "Use Kokkos" OFF)
+set(PB_DATASET_SIZE
+    "STANDARD"
+    CACHE STRING "Set the size of the dataset")
+
+if(PB_TIME_MONITORING)
+  add_definitions(-DPOLYBENCH_TIME)
+endif()
+if(PB_CYCLE_MONITORING)
+  add_definitions(-DPOLYBENCH_CYCLE_ACCURATE_TIMER)
+endif()
+if(PB_NO_FLUSH_CACHE)
+  add_definitions(-DPOLYBENCH_NO_FLUSH_CACHE)
+endif()
+if(PB_LINUX_FIFO_SCHEDULER)
+  add_definitions(-DPOLYBENCH_LINUX_FIFO_SCHEDULER)
+  link_libraries(-lc)
+endif()
+if(PB_STACK_ARRAYS)
+  add_definitions(-DPOLYBENCH_STACK_ARRAYS)
+endif()
+if(PB_DUMP_ARRAYS)
+  add_definitions(-DPOLYBENCH_DUMP_ARRAYS)
+endif()
+if(PB_PAPI)
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+  # a teseter
+  find_package(PAPI REQUIRED)
+  add_definitions(-DPOLYBENCH_PAPI)
+  link_libraries(${PAPI_LIBRARIES})
+endif()
+if(PB_USE_C99)
+  add_definitions(-DPOLYBENCH_USE_C99_PROTO)
+endif()
+if(PB_USE_SCALAR_LB)
+  add_definitions(-DPOLYBENCH_USE_SCALAR_LB)
+endif()
+if(PB_KOKKOS)
+  include(FetchContent)
+  FetchContent_Declare(
+    kokkos
+    GIT_REPOSITORY https://github.com/kokkos/kokkos.git
+    GIT_TAG 4.1.00)
+  FetchContent_MakeAvailable(kokkos)
+  add_definitions(-DPOLYBENCH_KOKKOS)
+endif()
+
+string(TOUPPER ${PB_DATASET_SIZE} PB_DATASET_SIZE)
+if(PB_DATASET_SIZE STREQUAL "MINI")
+  add_definitions(-DMINI_DATASET)
+elseif(PB_DATASET_SIZE STREQUAL "SMALL")
+  add_definitions(-DSMALL_DATASET)
+elseif(PB_DATASET_SIZE STREQUAL "STANDARD")
+  add_definitions(-DSTANDARD_DATASET)
+elseif(PB_DATASET_SIZE STREQUAL "LARGE")
+  add_definitions(-DLARGE_DATASET)
+elseif(PB_DATASET_SIZE STREQUAL "EXTRALARGE")
+  add_definitions(-DEXTRALARGE_DATASET)
+else()
+  message(
+    FATAL_ERROR
+      "PB_DATASET_SIZE must be one of: MINI, SMALL, STANDARD, LARGE, EXTRA_LARGE"
+  )
+endif()
+
+add_subdirectory(utilities)
+# add_subdirectory(datamining) add_subdirectory(linear-algebra)
+# add_subdirectory(medley)
+add_subdirectory(stencils)
