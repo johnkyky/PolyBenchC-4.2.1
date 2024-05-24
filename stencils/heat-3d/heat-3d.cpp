@@ -55,6 +55,47 @@ static void kernel_heat_3d(int tsteps, int n,
                            ARRAY_3D_FUNC_PARAM(DATA_TYPE, B, N, N, N, n, n,
                                                n)) {
 #pragma scop
+#if defined(POLYBENCH_KOKKOS)
+
+  const auto policy =
+      Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1, 1, 1}, {n - 1, n - 1, n - 1});
+  for (int t = 1; t <= TSTEPS; t++) {
+    Kokkos::parallel_for(
+        policy, KOKKOS_LAMBDA(const int i, const int j, const int k) {
+          ARRAY_3D_ACCESS(B, i, j, k) =
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(A, i + 1, j, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(A, i, j, k) +
+                   ARRAY_3D_ACCESS(A, i - 1, j, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(A, i, j + 1, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(A, i, j, k) +
+                   ARRAY_3D_ACCESS(A, i, j - 1, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(A, i, j, k + 1) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(A, i, j, k) +
+                   ARRAY_3D_ACCESS(A, i, j, k - 1)) +
+              ARRAY_3D_ACCESS(A, i, j, k);
+        });
+    Kokkos::parallel_for(
+        policy, KOKKOS_LAMBDA(const int i, const int j, const int k) {
+          ARRAY_3D_ACCESS(A, i, j, k) =
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(B, i + 1, j, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(B, i, j, k) +
+                   ARRAY_3D_ACCESS(B, i - 1, j, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(B, i, j + 1, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(B, i, j, k) +
+                   ARRAY_3D_ACCESS(B, i, j - 1, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(B, i, j, k + 1) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(B, i, j, k) +
+                   ARRAY_3D_ACCESS(B, i, j, k - 1)) +
+              ARRAY_3D_ACCESS(B, i, j, k);
+        });
+  }
+#else
   for (int t = 1; t <= TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++) {
       for (int j = 1; j < _PB_N - 1; j++) {
@@ -97,6 +138,7 @@ static void kernel_heat_3d(int tsteps, int n,
       }
     }
   }
+#endif
 #pragma endscop
 }
 

@@ -76,6 +76,63 @@ static void kernel_adi(int tsteps, int n,
   e = SCALAR_VAL(1.0) + mul2;
   f = d;
 
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy_1D = Kokkos::RangePolicy<>(1, n - 1);
+
+  for (int t = 1; t <= _PB_TSTEPS; t++) {
+    // Column Sweep
+    Kokkos::parallel_for(
+        policy_1D, KOKKOS_LAMBDA(const int i) {
+          ARRAY_2D_ACCESS(v, 0, i) = SCALAR_VAL(1.0);
+          ARRAY_2D_ACCESS(p, i, 0) = SCALAR_VAL(0.0);
+          ARRAY_2D_ACCESS(q, i, 0) = ARRAY_2D_ACCESS(v, 0, i);
+          for (int j = 1; j < _PB_N - 1; j++) {
+            ARRAY_2D_ACCESS(p, i, j) =
+                -c / (a * ARRAY_2D_ACCESS(p, i, j - 1) + b);
+            ARRAY_2D_ACCESS(q, i, j) =
+                (-d * ARRAY_2D_ACCESS(u, j, i - 1) +
+                 (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * d) *
+                     ARRAY_2D_ACCESS(u, j, i) -
+                 f * ARRAY_2D_ACCESS(u, j, i + 1) -
+                 a * ARRAY_2D_ACCESS(q, i, j - 1)) /
+                (a * ARRAY_2D_ACCESS(p, i, j - 1) + b);
+          }
+
+          ARRAY_2D_ACCESS(v, _PB_N - 1, i) = SCALAR_VAL(1.0);
+          for (int j = _PB_N - 2; j >= 1; j--) {
+            ARRAY_2D_ACCESS(v, j, i) =
+                ARRAY_2D_ACCESS(p, i, j) * ARRAY_2D_ACCESS(v, j + 1, i) +
+                ARRAY_2D_ACCESS(q, i, j);
+          }
+        });
+
+    // Row Sweep
+    Kokkos::parallel_for(
+        policy_1D, KOKKOS_LAMBDA(const int i) {
+          ARRAY_2D_ACCESS(u, i, 0) = SCALAR_VAL(1.0);
+          ARRAY_2D_ACCESS(p, i, 0) = SCALAR_VAL(0.0);
+          ARRAY_2D_ACCESS(q, i, 0) = ARRAY_2D_ACCESS(u, i, 0);
+          for (int j = 1; j < _PB_N - 1; j++) {
+            ARRAY_2D_ACCESS(p, i, j) =
+                -f / (d * ARRAY_2D_ACCESS(p, i, j - 1) + e);
+            ARRAY_2D_ACCESS(q, i, j) =
+                (-a * ARRAY_2D_ACCESS(v, i - 1, j) +
+                 (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * a) *
+                     ARRAY_2D_ACCESS(v, i, j) -
+                 c * ARRAY_2D_ACCESS(v, i + 1, j) -
+                 d * ARRAY_2D_ACCESS(q, i, j - 1)) /
+                (d * ARRAY_2D_ACCESS(p, i, j - 1) + e);
+          }
+          ARRAY_2D_ACCESS(u, i, _PB_N - 1) = SCALAR_VAL(1.0);
+          for (int j = _PB_N - 2; j >= 1; j--) {
+            ARRAY_2D_ACCESS(u, i, j) =
+                ARRAY_2D_ACCESS(p, i, j) * ARRAY_2D_ACCESS(u, i, j + 1) +
+                ARRAY_2D_ACCESS(q, i, j);
+          }
+        });
+  }
+
+#else
   for (int t = 1; t <= _PB_TSTEPS; t++) {
     // Column Sweep
     for (int i = 1; i < _PB_N - 1; i++) {
@@ -121,6 +178,7 @@ static void kernel_adi(int tsteps, int n,
       }
     }
   }
+#endif
 #pragma endscop
 }
 

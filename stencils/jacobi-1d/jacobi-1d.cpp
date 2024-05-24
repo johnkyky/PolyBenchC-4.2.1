@@ -48,6 +48,23 @@ static void kernel_jacobi_1d(int tsteps, int n,
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, A, N, n),
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, B, N, n)) {
 #pragma scop
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy = Kokkos::RangePolicy<>(1, n - 1);
+  for (int t = 0; t < _PB_TSTEPS; t++) {
+    Kokkos::parallel_for(
+        policy, KOKKOS_LAMBDA(const int i) {
+          ARRAY_1D_ACCESS(B, i) =
+              0.33333 * (ARRAY_1D_ACCESS(A, i - 1) + ARRAY_1D_ACCESS(A, i) +
+                         ARRAY_1D_ACCESS(A, i + 1));
+        });
+    Kokkos::parallel_for(
+        policy, KOKKOS_LAMBDA(const int i) {
+          ARRAY_1D_ACCESS(A, i) =
+              0.33333 * (ARRAY_1D_ACCESS(B, i - 1) + ARRAY_1D_ACCESS(B, i) +
+                         ARRAY_1D_ACCESS(B, i + 1));
+        });
+  }
+#else
   for (int t = 0; t < _PB_TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++)
       ARRAY_1D_ACCESS(B, i) =
@@ -58,6 +75,7 @@ static void kernel_jacobi_1d(int tsteps, int n,
           0.33333 * (ARRAY_1D_ACCESS(B, i - 1) + ARRAY_1D_ACCESS(B, i) +
                      ARRAY_1D_ACCESS(B, i + 1));
   }
+#endif
 #pragma endscop
 }
 

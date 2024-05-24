@@ -83,7 +83,48 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny),
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, _fict_, TMAX, tmax)) {
 #pragma scop
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy_1D_y = Kokkos::RangePolicy(0, ny);
+  const auto policy_2D_1 =
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 0}, {nx, ny});
+  const auto policy_2D_2 =
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 1}, {nx, ny});
+  const auto policy_2D_3 =
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {nx - 1, ny - 1});
 
+  for (int t = 0; t < _PB_TMAX; t++) {
+
+    Kokkos::parallel_for(
+        policy_1D_y, KOKKOS_LAMBDA(const int j) {
+          ARRAY_2D_ACCESS(ey, 0, j) = ARRAY_1D_ACCESS(_fict_, t);
+        });
+
+    Kokkos::parallel_for(
+        policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
+          ARRAY_2D_ACCESS(ey, i, j) =
+              ARRAY_2D_ACCESS(ey, i, j) -
+              SCALAR_VAL(0.5) *
+                  (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i - 1, j));
+        });
+
+    Kokkos::parallel_for(
+        policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
+          ARRAY_2D_ACCESS(ex, i, j) =
+              ARRAY_2D_ACCESS(ex, i, j) -
+              SCALAR_VAL(0.5) *
+                  (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i, j - 1));
+        });
+
+    Kokkos::parallel_for(
+        policy_2D_3, KOKKOS_LAMBDA(const int i, const int j) {
+          ARRAY_2D_ACCESS(hz, i, j) =
+              ARRAY_2D_ACCESS(hz, i, j) -
+              SCALAR_VAL(0.7) *
+                  (ARRAY_2D_ACCESS(ex, i, j + 1) - ARRAY_2D_ACCESS(ex, i, j) +
+                   ARRAY_2D_ACCESS(ey, i + 1, j) - ARRAY_2D_ACCESS(ey, i, j));
+        });
+  }
+#else
   for (int t = 0; t < _PB_TMAX; t++) {
     for (int j = 0; j < _PB_NY; j++)
       ARRAY_2D_ACCESS(ey, 0, j) = ARRAY_1D_ACCESS(_fict_, t);
@@ -107,7 +148,7 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
                 (ARRAY_2D_ACCESS(ex, i, j + 1) - ARRAY_2D_ACCESS(ex, i, j) +
                  ARRAY_2D_ACCESS(ey, i + 1, j) - ARRAY_2D_ACCESS(ey, i, j));
   }
-
+#endif
 #pragma endscop
 }
 

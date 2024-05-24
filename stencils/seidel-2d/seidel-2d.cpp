@@ -47,6 +47,21 @@ static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 static void kernel_seidel_2d(int tsteps, int n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 #pragma scop
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Serial, Kokkos::Rank<2>>(
+      {1, 1}, {n - 1, n - 1});
+  for (int t = 0; t <= _PB_TSTEPS - 1; t++)
+    Kokkos::parallel_for(
+        policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
+          ARRAY_2D_ACCESS(A, i, j) =
+              (ARRAY_2D_ACCESS(A, i - 1, j - 1) + ARRAY_2D_ACCESS(A, i - 1, j) +
+               ARRAY_2D_ACCESS(A, i - 1, j + 1) + ARRAY_2D_ACCESS(A, i, j - 1) +
+               ARRAY_2D_ACCESS(A, i, j) + ARRAY_2D_ACCESS(A, i, j + 1) +
+               ARRAY_2D_ACCESS(A, i + 1, j - 1) + ARRAY_2D_ACCESS(A, i + 1, j) +
+               ARRAY_2D_ACCESS(A, i + 1, j + 1)) /
+              SCALAR_VAL(9.0);
+        });
+#else
   for (int t = 0; t <= _PB_TSTEPS - 1; t++)
     for (int i = 1; i <= _PB_N - 2; i++)
       for (int j = 1; j <= _PB_N - 2; j++)
@@ -57,6 +72,7 @@ static void kernel_seidel_2d(int tsteps, int n,
              ARRAY_2D_ACCESS(A, i + 1, j - 1) + ARRAY_2D_ACCESS(A, i + 1, j) +
              ARRAY_2D_ACCESS(A, i + 1, j + 1)) /
             SCALAR_VAL(9.0);
+#endif
 #pragma endscop
 }
 

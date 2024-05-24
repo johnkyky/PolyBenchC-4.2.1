@@ -51,6 +51,28 @@ static void kernel_jacobi_2d(int tsteps, int n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n),
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, N, N, n, n)) {
 #pragma scop
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy =
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 1}, {n - 1, n - 1});
+  for (int t = 0; t < _PB_TSTEPS; t++) {
+    Kokkos::parallel_for(
+        policy, KOKKOS_LAMBDA(const int i, const int j) {
+          ARRAY_2D_ACCESS(B, i, j) =
+              SCALAR_VAL(0.2) *
+              (ARRAY_2D_ACCESS(A, i, j) + ARRAY_2D_ACCESS(A, i, j - 1) +
+               ARRAY_2D_ACCESS(A, i, 1 + j) + ARRAY_2D_ACCESS(A, 1 + i, j) +
+               ARRAY_2D_ACCESS(A, i - 1, j));
+        });
+    Kokkos::parallel_for(
+        policy, KOKKOS_LAMBDA(const int i, const int j) {
+          ARRAY_2D_ACCESS(A, i, j) =
+              SCALAR_VAL(0.2) *
+              (ARRAY_2D_ACCESS(B, i, j) + ARRAY_2D_ACCESS(B, i, j - 1) +
+               ARRAY_2D_ACCESS(B, i, 1 + j) + ARRAY_2D_ACCESS(B, 1 + i, j) +
+               ARRAY_2D_ACCESS(B, i - 1, j));
+        });
+  }
+#else
   for (int t = 0; t < _PB_TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++)
       for (int j = 1; j < _PB_N - 1; j++)
@@ -67,6 +89,7 @@ static void kernel_jacobi_2d(int tsteps, int n,
              ARRAY_2D_ACCESS(B, i, 1 + j) + ARRAY_2D_ACCESS(B, 1 + i, j) +
              ARRAY_2D_ACCESS(B, i - 1, j));
   }
+#endif
 #pragma endscop
 }
 
