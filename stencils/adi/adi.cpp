@@ -11,7 +11,6 @@
 
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
 /* Include polybench common header. */
@@ -21,23 +20,24 @@
 #include "adi.h"
 
 /* Array initialization. */
-static void init_array(int n, DATA_TYPE POLYBENCH_2D(u, N, N, n, n)) {
+static void init_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, u, N, N, n, n)) {
   for (int i = 0; i < n; i++)
     for (int j = 0; j < n; j++) {
-      u[i][j] = (DATA_TYPE)(i + n - j) / n;
+      ARRAY_2D_ACCESS(u, i, j) = (DATA_TYPE)(i + n - j) / n;
     }
 }
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
-static void print_array(int n, DATA_TYPE POLYBENCH_2D(u, N, N, n, n)) {
+static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, u, N, N, n, n)) {
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("u");
   for (int i = 0; i < n; i++)
     for (int j = 0; j < n; j++) {
       if ((i * n + j) % 20 == 0)
         fprintf(POLYBENCH_DUMP_TARGET, "\n");
-      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER, u[i][j]);
+      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
+              ARRAY_2D_ACCESS(u, i, j));
     }
   POLYBENCH_DUMP_END("u");
   POLYBENCH_DUMP_FINISH;
@@ -49,10 +49,11 @@ static void print_array(int n, DATA_TYPE POLYBENCH_2D(u, N, N, n, n)) {
  * "Automatic Data and Computation Decomposition on Distributed Memory Parallel
  * Computers" by Peizong Lee and Zvi Meir Kedem, TOPLAS, 2002
  */
-static void kernel_adi(int tsteps, int n, DATA_TYPE POLYBENCH_2D(u, N, N, n, n),
-                       DATA_TYPE POLYBENCH_2D(v, N, N, n, n),
-                       DATA_TYPE POLYBENCH_2D(p, N, N, n, n),
-                       DATA_TYPE POLYBENCH_2D(q, N, N, n, n)) {
+static void kernel_adi(int tsteps, int n,
+                       ARRAY_2D_FUNC_PARAM(DATA_TYPE, u, N, N, n, n),
+                       ARRAY_2D_FUNC_PARAM(DATA_TYPE, v, N, N, n, n),
+                       ARRAY_2D_FUNC_PARAM(DATA_TYPE, p, N, N, n, n),
+                       ARRAY_2D_FUNC_PARAM(DATA_TYPE, q, N, N, n, n)) {
   DATA_TYPE DX, DY, DT;
   DATA_TYPE B1, B2;
   DATA_TYPE mul1, mul2;
@@ -78,37 +79,45 @@ static void kernel_adi(int tsteps, int n, DATA_TYPE POLYBENCH_2D(u, N, N, n, n),
   for (int t = 1; t <= _PB_TSTEPS; t++) {
     // Column Sweep
     for (int i = 1; i < _PB_N - 1; i++) {
-      v[0][i] = SCALAR_VAL(1.0);
-      p[i][0] = SCALAR_VAL(0.0);
-      q[i][0] = v[0][i];
+      ARRAY_2D_ACCESS(v, 0, i) = SCALAR_VAL(1.0);
+      ARRAY_2D_ACCESS(p, i, 0) = SCALAR_VAL(0.0);
+      ARRAY_2D_ACCESS(q, i, 0) = ARRAY_2D_ACCESS(v, 0, i);
       for (int j = 1; j < _PB_N - 1; j++) {
-        p[i][j] = -c / (a * p[i][j - 1] + b);
-        q[i][j] = (-d * u[j][i - 1] +
-                   (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * d) * u[j][i] -
-                   f * u[j][i + 1] - a * q[i][j - 1]) /
-                  (a * p[i][j - 1] + b);
+        ARRAY_2D_ACCESS(p, i, j) = -c / (a * ARRAY_2D_ACCESS(p, i, j - 1) + b);
+        ARRAY_2D_ACCESS(q, i, j) = (-d * ARRAY_2D_ACCESS(u, j, i - 1) +
+                                    (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * d) *
+                                        ARRAY_2D_ACCESS(u, j, i) -
+                                    f * ARRAY_2D_ACCESS(u, j, i + 1) -
+                                    a * ARRAY_2D_ACCESS(q, i, j - 1)) /
+                                   (a * ARRAY_2D_ACCESS(p, i, j - 1) + b);
       }
 
-      v[_PB_N - 1][i] = SCALAR_VAL(1.0);
+      ARRAY_2D_ACCESS(v, _PB_N - 1, i) = SCALAR_VAL(1.0);
       for (int j = _PB_N - 2; j >= 1; j--) {
-        v[j][i] = p[i][j] * v[j + 1][i] + q[i][j];
+        ARRAY_2D_ACCESS(v, j, i) =
+            ARRAY_2D_ACCESS(p, i, j) * ARRAY_2D_ACCESS(v, j + 1, i) +
+            ARRAY_2D_ACCESS(q, i, j);
       }
     }
     // Row Sweep
     for (int i = 1; i < _PB_N - 1; i++) {
-      u[i][0] = SCALAR_VAL(1.0);
-      p[i][0] = SCALAR_VAL(0.0);
-      q[i][0] = u[i][0];
+      ARRAY_2D_ACCESS(u, i, 0) = SCALAR_VAL(1.0);
+      ARRAY_2D_ACCESS(p, i, 0) = SCALAR_VAL(0.0);
+      ARRAY_2D_ACCESS(q, i, 0) = ARRAY_2D_ACCESS(u, i, 0);
       for (int j = 1; j < _PB_N - 1; j++) {
-        p[i][j] = -f / (d * p[i][j - 1] + e);
-        q[i][j] = (-a * v[i - 1][j] +
-                   (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * a) * v[i][j] -
-                   c * v[i + 1][j] - d * q[i][j - 1]) /
-                  (d * p[i][j - 1] + e);
+        ARRAY_2D_ACCESS(p, i, j) = -f / (d * ARRAY_2D_ACCESS(p, i, j - 1) + e);
+        ARRAY_2D_ACCESS(q, i, j) = (-a * ARRAY_2D_ACCESS(v, i - 1, j) +
+                                    (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * a) *
+                                        ARRAY_2D_ACCESS(v, i, j) -
+                                    c * ARRAY_2D_ACCESS(v, i + 1, j) -
+                                    d * ARRAY_2D_ACCESS(q, i, j - 1)) /
+                                   (d * ARRAY_2D_ACCESS(p, i, j - 1) + e);
       }
-      u[i][_PB_N - 1] = SCALAR_VAL(1.0);
+      ARRAY_2D_ACCESS(u, i, _PB_N - 1) = SCALAR_VAL(1.0);
       for (int j = _PB_N - 2; j >= 1; j--) {
-        u[i][j] = p[i][j] * u[i][j + 1] + q[i][j];
+        ARRAY_2D_ACCESS(u, i, j) =
+            ARRAY_2D_ACCESS(p, i, j) * ARRAY_2D_ACCESS(u, i, j + 1) +
+            ARRAY_2D_ACCESS(q, i, j);
       }
     }
   }
@@ -116,6 +125,8 @@ static void kernel_adi(int tsteps, int n, DATA_TYPE POLYBENCH_2D(u, N, N, n, n),
 }
 
 int main(int argc, char **argv) {
+  INITIALIZE;
+
   /* Retrieve problem size. */
   int n = N;
   int tsteps = TSTEPS;
@@ -149,6 +160,8 @@ int main(int argc, char **argv) {
   POLYBENCH_FREE_ARRAY(v);
   POLYBENCH_FREE_ARRAY(p);
   POLYBENCH_FREE_ARRAY(q);
+
+  FINALIZE;
 
   return 0;
 }

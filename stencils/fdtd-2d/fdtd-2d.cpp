@@ -11,7 +11,6 @@
 
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
 /* Include polybench common header. */
@@ -22,17 +21,17 @@
 
 /* Array initialization. */
 static void init_array(int tmax, int nx, int ny,
-                       DATA_TYPE POLYBENCH_2D(ex, NX, NY, nx, ny),
-                       DATA_TYPE POLYBENCH_2D(ey, NX, NY, nx, ny),
-                       DATA_TYPE POLYBENCH_2D(hz, NX, NY, nx, ny),
-                       DATA_TYPE POLYBENCH_1D(_fict_, TMAX, tmax)) {
+                       ARRAY_2D_FUNC_PARAM(DATA_TYPE, ex, NX, NY, nx, ny),
+                       ARRAY_2D_FUNC_PARAM(DATA_TYPE, ey, NX, NY, nx, ny),
+                       ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny),
+                       ARRAY_1D_FUNC_PARAM(DATA_TYPE, _fict_, TMAX, tmax)) {
   for (int i = 0; i < tmax; i++)
-    _fict_[i] = (DATA_TYPE)i;
+    ARRAY_1D_ACCESS(_fict_, i) = (DATA_TYPE)i;
   for (int i = 0; i < nx; i++) {
     for (int j = 0; j < ny; j++) {
-      ex[i][j] = ((DATA_TYPE)i * (j + 1)) / nx;
-      ey[i][j] = ((DATA_TYPE)i * (j + 2)) / ny;
-      hz[i][j] = ((DATA_TYPE)i * (j + 3)) / nx;
+      ARRAY_2D_ACCESS(ex, i, j) = ((DATA_TYPE)i * (j + 1)) / nx;
+      ARRAY_2D_ACCESS(ey, i, j) = ((DATA_TYPE)i * (j + 2)) / ny;
+      ARRAY_2D_ACCESS(hz, i, j) = ((DATA_TYPE)i * (j + 3)) / nx;
     }
   }
 }
@@ -40,16 +39,17 @@ static void init_array(int tmax, int nx, int ny,
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
 static void print_array(int nx, int ny,
-                        DATA_TYPE POLYBENCH_2D(ex, NX, NY, nx, ny),
-                        DATA_TYPE POLYBENCH_2D(ey, NX, NY, nx, ny),
-                        DATA_TYPE POLYBENCH_2D(hz, NX, NY, nx, ny)) {
+                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, ex, NX, NY, nx, ny),
+                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, ey, NX, NY, nx, ny),
+                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny)) {
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("ex");
   for (int i = 0; i < nx; i++)
     for (int j = 0; j < ny; j++) {
       if ((i * nx + j) % 20 == 0)
         fprintf(POLYBENCH_DUMP_TARGET, "\n");
-      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER, ex[i][j]);
+      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
+              ARRAY_2D_ACCESS(ex, i, j));
     }
   POLYBENCH_DUMP_END("ex");
   POLYBENCH_DUMP_FINISH;
@@ -59,7 +59,8 @@ static void print_array(int nx, int ny,
     for (int j = 0; j < ny; j++) {
       if ((i * nx + j) % 20 == 0)
         fprintf(POLYBENCH_DUMP_TARGET, "\n");
-      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER, ey[i][j]);
+      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
+              ARRAY_2D_ACCESS(ey, i, j));
     }
   POLYBENCH_DUMP_END("ey");
 
@@ -68,7 +69,8 @@ static void print_array(int nx, int ny,
     for (int j = 0; j < ny; j++) {
       if ((i * nx + j) % 20 == 0)
         fprintf(POLYBENCH_DUMP_TARGET, "\n");
-      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER, hz[i][j]);
+      fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
+              ARRAY_2D_ACCESS(hz, i, j));
     }
   POLYBENCH_DUMP_END("hz");
 }
@@ -76,31 +78,42 @@ static void print_array(int nx, int ny,
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
 static void kernel_fdtd_2d(int tmax, int nx, int ny,
-                           DATA_TYPE POLYBENCH_2D(ex, NX, NY, nx, ny),
-                           DATA_TYPE POLYBENCH_2D(ey, NX, NY, nx, ny),
-                           DATA_TYPE POLYBENCH_2D(hz, NX, NY, nx, ny),
-                           DATA_TYPE POLYBENCH_1D(_fict_, TMAX, tmax)) {
+                           ARRAY_2D_FUNC_PARAM(DATA_TYPE, ex, NX, NY, nx, ny),
+                           ARRAY_2D_FUNC_PARAM(DATA_TYPE, ey, NX, NY, nx, ny),
+                           ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny),
+                           ARRAY_1D_FUNC_PARAM(DATA_TYPE, _fict_, TMAX, tmax)) {
 #pragma scop
 
   for (int t = 0; t < _PB_TMAX; t++) {
     for (int j = 0; j < _PB_NY; j++)
-      ey[0][j] = _fict_[t];
+      ARRAY_2D_ACCESS(ey, 0, j) = ARRAY_1D_ACCESS(_fict_, t);
     for (int i = 1; i < _PB_NX; i++)
       for (int j = 0; j < _PB_NY; j++)
-        ey[i][j] = ey[i][j] - SCALAR_VAL(0.5) * (hz[i][j] - hz[i - 1][j]);
+        ARRAY_2D_ACCESS(ey, i, j) =
+            ARRAY_2D_ACCESS(ey, i, j) -
+            SCALAR_VAL(0.5) *
+                (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i - 1, j));
     for (int i = 0; i < _PB_NX; i++)
       for (int j = 1; j < _PB_NY; j++)
-        ex[i][j] = ex[i][j] - SCALAR_VAL(0.5) * (hz[i][j] - hz[i][j - 1]);
+        ARRAY_2D_ACCESS(ex, i, j) =
+            ARRAY_2D_ACCESS(ex, i, j) -
+            SCALAR_VAL(0.5) *
+                (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i, j - 1));
     for (int i = 0; i < _PB_NX - 1; i++)
       for (int j = 0; j < _PB_NY - 1; j++)
-        hz[i][j] = hz[i][j] - SCALAR_VAL(0.7) * (ex[i][j + 1] - ex[i][j] +
-                                                 ey[i + 1][j] - ey[i][j]);
+        ARRAY_2D_ACCESS(hz, i, j) =
+            ARRAY_2D_ACCESS(hz, i, j) -
+            SCALAR_VAL(0.7) *
+                (ARRAY_2D_ACCESS(ex, i, j + 1) - ARRAY_2D_ACCESS(ex, i, j) +
+                 ARRAY_2D_ACCESS(ey, i + 1, j) - ARRAY_2D_ACCESS(ey, i, j));
   }
 
 #pragma endscop
 }
 
 int main(int argc, char **argv) {
+  INITIALIZE;
+
   /* Retrieve problem size. */
   int tmax = TMAX;
   int nx = NX;
@@ -137,6 +150,8 @@ int main(int argc, char **argv) {
   POLYBENCH_FREE_ARRAY(ey);
   POLYBENCH_FREE_ARRAY(hz);
   POLYBENCH_FREE_ARRAY(_fict_);
+
+  FINALIZE;
 
   return 0;
 }

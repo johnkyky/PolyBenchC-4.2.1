@@ -27,7 +27,11 @@
 #pragma once
 
 # include <stdlib.h>
+#include <string.h>
 
+#if defined(POLYBENCH_KOKKOS)
+#include <Kokkos_Core.hpp>
+#endif
 
 /* Array padding. By default, none is used. */
 # ifndef POLYBENCH_PADDING_FACTOR
@@ -73,6 +77,60 @@
 #  define POLYBENCH_RESTRICT
 # endif
 
+
+#if defined(POLYBENCH_KOKKOS)
+#define INITIALIZE                                                             \
+  Kokkos::initialize(argc, argv);                                              \
+  {
+#define FINALIZE                                                               \
+  }                                                                            \
+  Kokkos::finalize();
+
+#define ARRAY_1D_FUNC_PARAM(type, var, dim1, ddim1)                            \
+  Kokkos::View<DATA_TYPE *> &var
+#define ARRAY_2D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2)               \
+  Kokkos::View<DATA_TYPE **> &var
+#define ARRAY_3D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3)  \
+  Kokkos::View<DATA_TYPE ***> &var
+#define ARRAY_4D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
+                            dim4, ddim4)                                       \
+  Kokkos::View<DATA_TYPE ****> &var
+#define ARRAY_5D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
+                            dim4, ddim4, dim5, ddim5)                          \
+  Kokkos::View<DATA_TYPE ****> &var
+
+#define ARRAY_1D_ACCESS(var, i) var(i)
+#define ARRAY_2D_ACCESS(var, i, j) var(i, j)
+#define ARRAY_3D_ACCESS(var, i, j, k) var(i, j, k)
+#define ARRAY_4D_ACCESS(var, i, j, k, l) var(i, j, k, l)
+#define ARRAY_5D_ACCESS(var, i, j, k, l, m) var(i, j, k, l, m)
+
+#else
+
+#define ARRAY_1D_FUNC_PARAM(type, var, dim1, ddim1)                            \
+  DATA_TYPE POLYBENCH_1D(var, dim1, ddim1)
+#define ARRAY_2D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2)               \
+  DATA_TYPE POLYBENCH_2D(var, dim1, ddim1, dim2, ddim2)
+#define ARRAY_3D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3)  \
+  DATA_TYPE POLYBENCH_3D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3)
+#define ARRAY_4D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
+                            dim4, ddim4)                                       \
+  DATA_TYPE POLYBENCH_4D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3, dim4,     \
+                         ddim4)
+#define ARRAY_5D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
+                            dim4, ddim4, dim5, ddim5)                          \
+  DATA_TYPE POLYBENCH_4D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3, dim4,     \
+                         ddim4, dim5, ddim5)
+
+#define ARRAY_1D_ACCESS(var, i) var[i]
+#define ARRAY_2D_ACCESS(var, i, j) var[i][j]
+#define ARRAY_3D_ACCESS(var, i, j, k) var[i][j][k]
+#define ARRAY_4D_ACCESS(var, i, j, k, l) var[i][j][k][l]
+#define ARRAY_5D_ACCESS(var, i, j, k, l, m) var[i][j][k][l][m]
+#define INITIALIZE
+#define FINALIZE
+#endif
+
 /* Macros to reference an array. Generic for heap and stack arrays
    (C99).  Each array dimensionality has his own macro, to be used at
    declaration or as a function argument.
@@ -80,7 +138,14 @@
    int b[x] => POLYBENCH_1D_ARRAY(b, x)
    int A[N][N] => POLYBENCH_2D_ARRAY(A, N, N)
 */
-# ifndef POLYBENCH_STACK_ARRAYS
+#if defined(POLYBENCH_STACK_ARRAYS)
+#  define POLYBENCH_ARRAY(x) x
+#  define POLYBENCH_FREE_ARRAY(x)
+#  define POLYBENCH_DECL_VAR(x) x
+#elif defined(POLYBENCH_KOKKOS)
+#define POLYBENCH_ARRAY(x) x
+#define POLYBENCH_FREE_ARRAY(x)
+#else
 #  define POLYBENCH_ARRAY(x) *x
 #  ifdef POLYBENCH_ENABLE_INTARRAY_PAD
 #   define POLYBENCH_FREE_ARRAY(x) polybench_free_data((void*)x);
@@ -88,11 +153,12 @@
 #   define POLYBENCH_FREE_ARRAY(x) free((void*)x);
 #  endif
 #  define POLYBENCH_DECL_VAR(x) (*x)
-# else
-#  define POLYBENCH_ARRAY(x) x
-#  define POLYBENCH_FREE_ARRAY(x)
-#  define POLYBENCH_DECL_VAR(x) x
-# endif
+#endif
+
+
+
+
+
 /* Macros for using arrays in the function prototypes. */
 # define POLYBENCH_1D(var, dim1,ddim1) var[POLYBENCH_RESTRICT POLYBENCH_C99_SELECT(dim1,ddim1) + POLYBENCH_PADDING_FACTOR]
 # define POLYBENCH_2D(var, dim1, dim2, ddim1, ddim2) var[POLYBENCH_RESTRICT POLYBENCH_C99_SELECT(dim1,ddim1) + POLYBENCH_PADDING_FACTOR][POLYBENCH_C99_SELECT(dim2,ddim2) + POLYBENCH_PADDING_FACTOR]
@@ -124,7 +190,41 @@
   (type(*)[n1 + POLYBENCH_PADDING_FACTOR][n2 + POLYBENCH_PADDING_FACTOR][n3 + POLYBENCH_PADDING_FACTOR][n4 + POLYBENCH_PADDING_FACTOR][n5 + POLYBENCH_PADDING_FACTOR])polybench_alloc_data ((n1 + POLYBENCH_PADDING_FACTOR) * (n2 + POLYBENCH_PADDING_FACTOR) * (n3 + POLYBENCH_PADDING_FACTOR) * (n4 + POLYBENCH_PADDING_FACTOR) * (n5 + POLYBENCH_PADDING_FACTOR), sizeof(type))
 
 /* Macros for array declaration. */
-# ifndef POLYBENCH_STACK_ARRAYS
+#if defined(POLYBENCH_STACK_ARRAYS)
+#  define POLYBENCH_1D_ARRAY_DECL(var, type, dim1, ddim1)		\
+  type POLYBENCH_1D_F(POLYBENCH_DECL_VAR(var), dim1, ddim1);
+#  define POLYBENCH_2D_ARRAY_DECL(var, type, dim1, dim2, ddim1, ddim2)	\
+  type POLYBENCH_2D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, ddim1, ddim2);
+#  define POLYBENCH_3D_ARRAY_DECL(var, type, dim1, dim2, dim3, ddim1, ddim2, ddim3) \
+  type POLYBENCH_3D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, dim3, ddim1, ddim2, ddim3);
+#  define POLYBENCH_4D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, ddim1, ddim2, ddim3, ddim4) \
+  type POLYBENCH_4D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, dim3, dim4, ddim1, ddim2, ddim3, ddim4);
+#  define POLYBENCH_5D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, dim5, ddim1, ddim2, ddim3, ddim4, ddim5) \
+  type POLYBENCH_5D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, dim3, dim4, dim5, ddim1, ddim2, ddim3, ddim4, ddim5);
+#elif defined(POLYBENCH_KOKKOS)
+#define POLYBENCH_1D_ARRAY_DECL(var, type, dim1, ddim1)                        \
+  Kokkos::View<type *> var("var", POLYBENCH_C99_SELECT(dim1, ddim1));
+#define POLYBENCH_2D_ARRAY_DECL(var, type, dim1, dim2, ddim1, ddim2)           \
+  Kokkos::View<type **> var("var", POLYBENCH_C99_SELECT(dim1, ddim1),          \
+                            POLYBENCH_C99_SELECT(dim2, ddim2));
+#define POLYBENCH_3D_ARRAY_DECL(var, type, dim1, dim2, dim3, ddim1, ddim2,     \
+                                ddim3)                                         \
+  Kokkos::View<type ***> var("var", POLYBENCH_C99_SELECT(dim1, ddim1),         \
+                             POLYBENCH_C99_SELECT(dim2, ddim2),                \
+                             POLYBENCH_C99_SELECT(dim3, ddim3));
+#define POLYBENCH_4D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, ddim1,      \
+                                ddim2, ddim3, ddim4)                           \
+  Kokkos::View<type ****> var("var", POLYBENCH_C99_SELECT(dim1, ddim1),        \
+                              POLYBENCH_C99_SELECT(dim2, ddim2),               \
+                              POLYBENCH_C99_SELECT(dim3, ddim3),               \
+                              POLYBENCH_C99_SELECT(dim4, ddim4));
+#define POLYBENCH_5D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, dim5,       \
+                                ddim1, ddim2, ddim3, ddim4, ddim5)             \
+  Kokkos::View<type *****> var(                                                \
+      "var", POLYBENCH_C99_SELECT(dim1, ddim1),                                \
+      POLYBENCH_C99_SELECT(dim2, ddim2), POLYBENCH_C99_SELECT(dim3, ddim3),    \
+      POLYBENCH_C99_SELECT(dim4, ddim4), POLYBENCH_C99_SELECT(dim5, ddim5));
+#else
 #  define POLYBENCH_1D_ARRAY_DECL(var, type, dim1, ddim1)		\
   type POLYBENCH_1D_F(POLYBENCH_DECL_VAR(var), dim1, ddim1); \
   var = POLYBENCH_ALLOC_1D_ARRAY(POLYBENCH_C99_SELECT(dim1, ddim1), type);
@@ -140,18 +240,8 @@
 #  define POLYBENCH_5D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, dim5, ddim1, ddim2, ddim3, ddim4, ddim5) \
   type POLYBENCH_5D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, dim3, dim4, dim5, ddim1, ddim2, ddim3, ddim4, ddim5); \
   var = POLYBENCH_ALLOC_5D_ARRAY(POLYBENCH_C99_SELECT(dim1, ddim1), POLYBENCH_C99_SELECT(dim2, ddim2), POLYBENCH_C99_SELECT(dim3, ddim3), POLYBENCH_C99_SELECT(dim4, ddim4), POLYBENCH_C99_SELECT(dim5, ddim5), type);
-# else
-#  define POLYBENCH_1D_ARRAY_DECL(var, type, dim1, ddim1)		\
-  type POLYBENCH_1D_F(POLYBENCH_DECL_VAR(var), dim1, ddim1);
-#  define POLYBENCH_2D_ARRAY_DECL(var, type, dim1, dim2, ddim1, ddim2)	\
-  type POLYBENCH_2D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, ddim1, ddim2);
-#  define POLYBENCH_3D_ARRAY_DECL(var, type, dim1, dim2, dim3, ddim1, ddim2, ddim3) \
-  type POLYBENCH_3D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, dim3, ddim1, ddim2, ddim3);
-#  define POLYBENCH_4D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, ddim1, ddim2, ddim3, ddim4) \
-  type POLYBENCH_4D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, dim3, dim4, ddim1, ddim2, ddim3, ddim4);
-#  define POLYBENCH_5D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, dim5, ddim1, ddim2, ddim3, ddim4, ddim5) \
-  type POLYBENCH_5D_F(POLYBENCH_DECL_VAR(var), dim1, dim2, dim3, dim4, dim5, ddim1, ddim2, ddim3, ddim4, ddim5);
-# endif
+#endif
+
 
 
 /* Dead-code elimination macros. Use argc/argv for the run-time check. */

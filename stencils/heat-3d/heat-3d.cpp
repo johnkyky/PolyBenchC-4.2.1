@@ -11,7 +11,6 @@
 
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
 /* Include polybench common header. */
@@ -21,17 +20,20 @@
 #include "heat-3d.h"
 
 /* Array initialization. */
-static void init_array(int n, DATA_TYPE POLYBENCH_3D(A, N, N, N, n, n, n),
-                       DATA_TYPE POLYBENCH_3D(B, N, N, N, n, n, n)) {
+static void init_array(int n,
+                       ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n),
+                       ARRAY_3D_FUNC_PARAM(DATA_TYPE, B, N, N, N, n, n, n)) {
   for (int i = 0; i < n; i++)
     for (int j = 0; j < n; j++)
       for (int k = 0; k < n; k++)
-        A[i][j][k] = B[i][j][k] = (DATA_TYPE)(i + j + (n - k)) * 10 / (n);
+        ARRAY_3D_ACCESS(A, i, j, k) = ARRAY_3D_ACCESS(B, i, j, k) =
+            (DATA_TYPE)(i + j + (n - k)) * 10 / (n);
 }
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
-static void print_array(int n, DATA_TYPE POLYBENCH_3D(A, N, N, N, n, n, n)) {
+static void print_array(int n,
+                        ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n)) {
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("A");
   for (int i = 0; i < n; i++)
@@ -39,7 +41,8 @@ static void print_array(int n, DATA_TYPE POLYBENCH_3D(A, N, N, N, n, n, n)) {
       for (int k = 0; k < n; k++) {
         if ((i * n * n + j * n + k) % 20 == 0)
           fprintf(POLYBENCH_DUMP_TARGET, "\n");
-        fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER, A[i][j][k]);
+        fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
+                ARRAY_3D_ACCESS(A, i, j, k));
       }
   POLYBENCH_DUMP_END("A");
   POLYBENCH_DUMP_FINISH;
@@ -48,39 +51,48 @@ static void print_array(int n, DATA_TYPE POLYBENCH_3D(A, N, N, N, n, n, n)) {
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
 static void kernel_heat_3d(int tsteps, int n,
-                           DATA_TYPE POLYBENCH_3D(A, N, N, N, n, n, n),
-                           DATA_TYPE POLYBENCH_3D(B, N, N, N, n, n, n)) {
+                           ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n),
+                           ARRAY_3D_FUNC_PARAM(DATA_TYPE, B, N, N, N, n, n,
+                                               n)) {
 #pragma scop
   for (int t = 1; t <= TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++) {
       for (int j = 1; j < _PB_N - 1; j++) {
         for (int k = 1; k < _PB_N - 1; k++) {
-          B[i][j][k] = SCALAR_VAL(0.125) *
-                           (A[i + 1][j][k] - SCALAR_VAL(2.0) * A[i][j][k] +
-                            A[i - 1][j][k]) +
-                       SCALAR_VAL(0.125) *
-                           (A[i][j + 1][k] - SCALAR_VAL(2.0) * A[i][j][k] +
-                            A[i][j - 1][k]) +
-                       SCALAR_VAL(0.125) *
-                           (A[i][j][k + 1] - SCALAR_VAL(2.0) * A[i][j][k] +
-                            A[i][j][k - 1]) +
-                       A[i][j][k];
+          ARRAY_3D_ACCESS(B, i, j, k) =
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(A, i + 1, j, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(A, i, j, k) +
+                   ARRAY_3D_ACCESS(A, i - 1, j, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(A, i, j + 1, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(A, i, j, k) +
+                   ARRAY_3D_ACCESS(A, i, j - 1, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(A, i, j, k + 1) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(A, i, j, k) +
+                   ARRAY_3D_ACCESS(A, i, j, k - 1)) +
+              ARRAY_3D_ACCESS(A, i, j, k);
         }
       }
     }
     for (int i = 1; i < _PB_N - 1; i++) {
       for (int j = 1; j < _PB_N - 1; j++) {
         for (int k = 1; k < _PB_N - 1; k++) {
-          A[i][j][k] = SCALAR_VAL(0.125) *
-                           (B[i + 1][j][k] - SCALAR_VAL(2.0) * B[i][j][k] +
-                            B[i - 1][j][k]) +
-                       SCALAR_VAL(0.125) *
-                           (B[i][j + 1][k] - SCALAR_VAL(2.0) * B[i][j][k] +
-                            B[i][j - 1][k]) +
-                       SCALAR_VAL(0.125) *
-                           (B[i][j][k + 1] - SCALAR_VAL(2.0) * B[i][j][k] +
-                            B[i][j][k - 1]) +
-                       B[i][j][k];
+          ARRAY_3D_ACCESS(A, i, j, k) =
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(B, i + 1, j, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(B, i, j, k) +
+                   ARRAY_3D_ACCESS(B, i - 1, j, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(B, i, j + 1, k) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(B, i, j, k) +
+                   ARRAY_3D_ACCESS(B, i, j - 1, k)) +
+              SCALAR_VAL(0.125) *
+                  (ARRAY_3D_ACCESS(B, i, j, k + 1) -
+                   SCALAR_VAL(2.0) * ARRAY_3D_ACCESS(B, i, j, k) +
+                   ARRAY_3D_ACCESS(B, i, j, k - 1)) +
+              ARRAY_3D_ACCESS(B, i, j, k);
         }
       }
     }
@@ -89,6 +101,8 @@ static void kernel_heat_3d(int tsteps, int n,
 }
 
 int main(int argc, char **argv) {
+  INITIALIZE;
+
   /* Retrieve problem size. */
   int n = N;
   int tsteps = TSTEPS;
@@ -116,6 +130,8 @@ int main(int argc, char **argv) {
 
   /* Be clean. */
   POLYBENCH_FREE_ARRAY(A);
+
+  FINALIZE;
 
   return 0;
 }
