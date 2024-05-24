@@ -16,7 +16,7 @@ option(PB_USE_C99 "Use standard C99 prototype for the functions" OFF)
 option(PB_USE_SCALAR_LB "Use scalar loop bounds instead of parametric ones" OFF)
 option(PB_KOKKOS "Use Kokkos" OFF)
 set(PB_DATASET_SIZE
-    "STANDARD"
+  "MEDIUM"
     CACHE STRING "Set the size of the dataset")
 
 if(PB_TIME_MONITORING)
@@ -66,8 +66,8 @@ if(PB_DATASET_SIZE STREQUAL "MINI")
   add_definitions(-DMINI_DATASET)
 elseif(PB_DATASET_SIZE STREQUAL "SMALL")
   add_definitions(-DSMALL_DATASET)
-elseif(PB_DATASET_SIZE STREQUAL "STANDARD")
-  add_definitions(-DSTANDARD_DATASET)
+elseif(PB_DATASET_SIZE STREQUAL "MEDIUM")
+  add_definitions(-DMEDIUM_DATASET)
 elseif(PB_DATASET_SIZE STREQUAL "LARGE")
   add_definitions(-DLARGE_DATASET)
 elseif(PB_DATASET_SIZE STREQUAL "EXTRALARGE")
