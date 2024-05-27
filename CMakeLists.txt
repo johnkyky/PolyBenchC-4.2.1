@@ -16,7 +16,7 @@ option(PB_USE_C99 "Use standard C99 prototype for the functions" OFF)
 option(PB_USE_SCALAR_LB "Use scalar loop bounds instead of parametric ones" OFF)
 option(PB_KOKKOS "Use Kokkos" OFF)
 set(PB_DATASET_SIZE
-  "MEDIUM"
+    "MEDIUM"
     CACHE STRING "Set the size of the dataset")
 
 if(PB_TIME_MONITORING)
@@ -81,5 +81,5 @@ endif()
 
 add_subdirectory(utilities)
 # add_subdirectory(datamining) add_subdirectory(linear-algebra)
-# add_subdirectory(medley)
+add_subdirectory(medley)
 add_subdirectory(stencils)
