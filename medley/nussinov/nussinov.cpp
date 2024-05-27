@@ -67,6 +67,7 @@ static void print_array(int n,
   Jin, based on algorithm by Nussinov, described in Allison Lake's senior
   thesis.
 */
+/// TODO: convert to kokkos kernel
 static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
                             ARRAY_2D_FUNC_PARAM(DATA_TYPE, table, N, N, n, n)) {
 #pragma scop

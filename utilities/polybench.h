@@ -104,19 +104,18 @@
 #else
 
 #define ARRAY_1D_FUNC_PARAM(type, var, dim1, ddim1)                            \
-  DATA_TYPE POLYBENCH_1D(var, dim1, ddim1)
+  type POLYBENCH_1D(var, dim1, ddim1)
 #define ARRAY_2D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2)               \
-  DATA_TYPE POLYBENCH_2D(var, dim1, ddim1, dim2, ddim2)
+  type POLYBENCH_2D(var, dim1, ddim1, dim2, ddim2)
 #define ARRAY_3D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3)  \
-  DATA_TYPE POLYBENCH_3D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3)
+  type POLYBENCH_3D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3)
 #define ARRAY_4D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
                             dim4, ddim4)                                       \
-  DATA_TYPE POLYBENCH_4D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3, dim4,     \
-                         ddim4)
+  type POLYBENCH_4D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3, dim4, ddim4)
 #define ARRAY_5D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
                             dim4, ddim4, dim5, ddim5)                          \
-  DATA_TYPE POLYBENCH_4D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3, dim4,     \
-                         ddim4, dim5, ddim5)
+  type POLYBENCH_4D(var, dim1, ddim1, dim2, ddim2, dim3, ddim3, dim4, ddim4,   \
+                    dim5, ddim5)
 
 #define ARRAY_1D_ACCESS(var, i) var[i]
 #define ARRAY_2D_ACCESS(var, i, j) var[i][j]

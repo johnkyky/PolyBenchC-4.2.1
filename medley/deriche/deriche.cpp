@@ -67,6 +67,96 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
   DATA_TYPE b1, b2, c1, c2;
 
 #pragma scop
+#if defined(POLYBENCH_KOKKOS)
+  k = (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) *
+      (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) /
+      (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * alpha * EXP_FUN(-alpha) -
+       EXP_FUN(SCALAR_VAL(2.0) * alpha));
+  a1 = a5 = k;
+  a2 = a6 = k * EXP_FUN(-alpha) * (alpha - SCALAR_VAL(1.0));
+  a3 = a7 = k * EXP_FUN(-alpha) * (alpha + SCALAR_VAL(1.0));
+  a4 = a8 = -k * EXP_FUN(SCALAR_VAL(-2.0) * alpha);
+  b1 = POW_FUN(SCALAR_VAL(2.0), -alpha);
+  b2 = -EXP_FUN(SCALAR_VAL(-2.0) * alpha);
+  c1 = c2 = 1;
+
+  const auto policy_1D_1 = Kokkos::RangePolicy<>(0, w);
+  const auto policy_1D_2 = Kokkos::RangePolicy<>(0, h);
+  const auto policy_2D_1 =
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {w, h});
+
+  Kokkos::parallel_for(policy_2D_1, KOKKOS_LAMBDA(const int i, const int j){});
+
+  Kokkos::parallel_for(
+      policy_1D_1, KOKKOS_LAMBDA(const int i) {
+        DATA_TYPE ym1 = SCALAR_VAL(0.0);
+        DATA_TYPE ym2 = SCALAR_VAL(0.0);
+        DATA_TYPE xm1 = SCALAR_VAL(0.0);
+        for (int j = 0; j < _PB_H; j++) {
+          ARRAY_2D_ACCESS(y1, i, j) = a1 * ARRAY_2D_ACCESS(imgIn, i, j) +
+                                      a2 * xm1 + b1 * ym1 + b2 * ym2;
+          xm1 = ARRAY_2D_ACCESS(imgIn, i, j);
+          ym2 = ym1;
+          ym1 = ARRAY_2D_ACCESS(y1, i, j);
+        }
+      });
+
+  Kokkos::parallel_for(
+      policy_1D_1, KOKKOS_LAMBDA(const int i) {
+        DATA_TYPE yp1 = SCALAR_VAL(0.0);
+        DATA_TYPE yp2 = SCALAR_VAL(0.0);
+        DATA_TYPE xp1 = SCALAR_VAL(0.0);
+        DATA_TYPE xp2 = SCALAR_VAL(0.0);
+        for (int j = _PB_H - 1; j >= 0; j--) {
+          ARRAY_2D_ACCESS(y2, i, j) = a3 * xp1 + a4 * xp2 + b1 * yp1 + b2 * yp2;
+          xp2 = xp1;
+          xp1 = ARRAY_2D_ACCESS(imgIn, i, j);
+          yp2 = yp1;
+          yp1 = ARRAY_2D_ACCESS(y2, i, j);
+        }
+      });
+
+  Kokkos::parallel_for(
+      policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
+        ARRAY_2D_ACCESS(imgOut, i, j) =
+            c1 * (ARRAY_2D_ACCESS(y1, i, j) + ARRAY_2D_ACCESS(y2, i, j));
+      });
+
+  Kokkos::parallel_for(
+      policy_1D_2, KOKKOS_LAMBDA(const int j) {
+        DATA_TYPE tm1 = SCALAR_VAL(0.0);
+        DATA_TYPE ym1 = SCALAR_VAL(0.0);
+        DATA_TYPE ym2 = SCALAR_VAL(0.0);
+        for (int i = 0; i < _PB_W; i++) {
+          ARRAY_2D_ACCESS(y1, i, j) = a5 * ARRAY_2D_ACCESS(imgOut, i, j) +
+                                      a6 * tm1 + b1 * ym1 + b2 * ym2;
+          tm1 = ARRAY_2D_ACCESS(imgOut, i, j);
+          ym2 = ym1;
+          ym1 = ARRAY_2D_ACCESS(y1, i, j);
+        }
+      });
+
+  Kokkos::parallel_for(
+      policy_1D_2, KOKKOS_LAMBDA(const int j) {
+        DATA_TYPE tp1 = SCALAR_VAL(0.0);
+        DATA_TYPE tp2 = SCALAR_VAL(0.0);
+        DATA_TYPE yp1 = SCALAR_VAL(0.0);
+        DATA_TYPE yp2 = SCALAR_VAL(0.0);
+        for (int i = _PB_W - 1; i >= 0; i--) {
+          ARRAY_2D_ACCESS(y2, i, j) = a7 * tp1 + a8 * tp2 + b1 * yp1 + b2 * yp2;
+          tp2 = tp1;
+          tp1 = ARRAY_2D_ACCESS(imgOut, i, j);
+          yp2 = yp1;
+          yp1 = ARRAY_2D_ACCESS(y2, i, j);
+        }
+      });
+
+  Kokkos::parallel_for(
+      policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
+        ARRAY_2D_ACCESS(imgOut, i, j) =
+            c2 * (ARRAY_2D_ACCESS(y1, i, j) + ARRAY_2D_ACCESS(y2, i, j));
+      });
+#else
   k = (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) *
       (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) /
       (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * alpha * EXP_FUN(-alpha) -
@@ -106,11 +196,12 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
     }
   }
 
-  for (int i = 0; i < _PB_W; i++)
+  for (int i = 0; i < _PB_W; i++) {
     for (int j = 0; j < _PB_H; j++) {
       ARRAY_2D_ACCESS(imgOut, i, j) =
           c1 * (ARRAY_2D_ACCESS(y1, i, j) + ARRAY_2D_ACCESS(y2, i, j));
     }
+  }
 
   for (int j = 0; j < _PB_H; j++) {
     tm1 = SCALAR_VAL(0.0);
@@ -139,16 +230,17 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
     }
   }
 
-  for (int i = 0; i < _PB_W; i++)
-    for (int j = 0; j < _PB_H; j++)
+  for (int i = 0; i < _PB_W; i++) {
+    for (int j = 0; j < _PB_H; j++) {
       ARRAY_2D_ACCESS(imgOut, i, j) =
           c2 * (ARRAY_2D_ACCESS(y1, i, j) + ARRAY_2D_ACCESS(y2, i, j));
-
+    }
+  }
+#endif
 #pragma endscop
 }
 
 int main(int argc, char **argv) {
-
   INITIALIZE;
 
   /* Retrieve problem size. */

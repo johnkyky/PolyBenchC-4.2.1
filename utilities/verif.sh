@@ -120,6 +120,11 @@ dataminings_dir=datamining
 dataminings_kernel=("correlation" "covariance")
 # run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
 
+# medley
+kernel_dir=medley
+medley_kernel=("deriche" "floyd-warshall" "nussinov")
+run_polybench ${kernel_dir} "${medley_kernel[@]}"
+
 echo -e "\n"
 
 # stencils
