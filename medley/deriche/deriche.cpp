@@ -85,8 +85,6 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {w, h});
 
-  Kokkos::parallel_for(policy_2D_1, KOKKOS_LAMBDA(const int i, const int j){});
-
   Kokkos::parallel_for(
       policy_1D_1, KOKKOS_LAMBDA(const int i) {
         DATA_TYPE ym1 = SCALAR_VAL(0.0);

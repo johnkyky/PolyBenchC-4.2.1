@@ -118,7 +118,7 @@ export OMP_PLACES=threads
 # datamining
 dataminings_dir=datamining
 dataminings_kernel=("correlation" "covariance")
-# run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
+run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
 
 # medley
 kernel_dir=medley
