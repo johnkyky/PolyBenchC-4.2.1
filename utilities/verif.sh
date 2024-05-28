@@ -105,11 +105,13 @@ mkdir -p $output_dir
 
 polybench_dir=$(pwd)/..
 
+dataset="LARGE"
+
 echo_replace "Generating build files for Polybench standard versionalallalla\r"
-cmake -S $polybench_dir -B $build_std -DCMAKE_BUILD_TYPE=Release -DPB_DUMP_ARRAYS=ON >>$output_dir/log.txt
+cmake -S $polybench_dir -B $build_std -DCMAKE_BUILD_TYPE=Release -DPB_DUMP_ARRAYS=ON -DPB_DATASET_SIZE=${dataset} >>$output_dir/log.txt
 
 echo_replace "Generating build files for Polybench Kokkos version\r"
-cmake -S $polybench_dir -B $build_kokkos -DCMAKE_BUILD_TYPE=Release -DPB_DUMP_ARRAYS=ON -DPB_KOKKOS=ON -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON >>$output_dir/log.txt
+cmake -S $polybench_dir -B $build_kokkos -DCMAKE_BUILD_TYPE=Release -DPB_DUMP_ARRAYS=ON -DPB_DATASET_SIZE=${dataset} -DPB_KOKKOS=ON -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON >>$output_dir/log.txt
 
 # set variable to the benchmarks you want to running
 export OMP_PROC_BIND=spread
@@ -119,6 +121,8 @@ export OMP_PLACES=threads
 dataminings_dir=datamining
 dataminings_kernel=("correlation" "covariance")
 run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
+
+echo -e "\n"
 
 # medley
 kernel_dir=medley

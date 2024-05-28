@@ -57,49 +57,56 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
 
 #pragma scop
 #if defined(POLYBENCH_KOKKOS)
-  // TODO: Add Kokkos code here
-  for (int j = 0; j < _PB_M; j++) {
-    ARRAY_1D_ACCESS(mean, j) = SCALAR_VAL(0.0);
-    for (int i = 0; i < _PB_N; i++)
-      ARRAY_1D_ACCESS(mean, j) += ARRAY_2D_ACCESS(data, i, j);
-    ARRAY_1D_ACCESS(mean, j) /= float_n;
-  }
 
-  for (int j = 0; j < _PB_M; j++) {
-    ARRAY_1D_ACCESS(stddev, j) = SCALAR_VAL(0.0);
-    for (int i = 0; i < _PB_N; i++)
-      ARRAY_1D_ACCESS(stddev, j) +=
-          (ARRAY_2D_ACCESS(data, i, j) - ARRAY_1D_ACCESS(mean, j)) *
-          (ARRAY_2D_ACCESS(data, i, j) - ARRAY_1D_ACCESS(mean, j));
-    ARRAY_1D_ACCESS(stddev, j) /= float_n;
-    ARRAY_1D_ACCESS(stddev, j) = SQRT_FUN(ARRAY_1D_ACCESS(stddev, j));
-    /* The following in an inelegant but usual way to handle
-       near-zero std. dev. values, which below would cause a zero-
-       divide. */
-    ARRAY_1D_ACCESS(stddev, j) = ARRAY_1D_ACCESS(stddev, j) <= eps
-                                     ? SCALAR_VAL(1.0)
-                                     : ARRAY_1D_ACCESS(stddev, j);
-  }
+  const auto policy_1D_1 = Kokkos::RangePolicy<>(0, m);
+  const auto policy_1D_2 = Kokkos::RangePolicy<>(0, m - 1);
+  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, m});
+
+  Kokkos::parallel_for(
+      policy_1D_1, KOKKOS_LAMBDA(const int j) {
+        ARRAY_1D_ACCESS(mean, j) = SCALAR_VAL(0.0);
+        for (int i = 0; i < _PB_N; i++)
+          ARRAY_1D_ACCESS(mean, j) += ARRAY_2D_ACCESS(data, i, j);
+        ARRAY_1D_ACCESS(mean, j) /= float_n;
+      });
+
+  Kokkos::parallel_for(
+      policy_1D_1, KOKKOS_LAMBDA(const int j) {
+        ARRAY_1D_ACCESS(stddev, j) = SCALAR_VAL(0.0);
+        for (int i = 0; i < _PB_N; i++)
+          ARRAY_1D_ACCESS(stddev, j) +=
+              (ARRAY_2D_ACCESS(data, i, j) - ARRAY_1D_ACCESS(mean, j)) *
+              (ARRAY_2D_ACCESS(data, i, j) - ARRAY_1D_ACCESS(mean, j));
+        ARRAY_1D_ACCESS(stddev, j) /= float_n;
+        ARRAY_1D_ACCESS(stddev, j) = SQRT_FUN(ARRAY_1D_ACCESS(stddev, j));
+        /* The following in an inelegant but usual way to handle
+           near-zero std. dev. values, which below would cause a zero-
+           divide. */
+        ARRAY_1D_ACCESS(stddev, j) = ARRAY_1D_ACCESS(stddev, j) <= eps
+                                         ? SCALAR_VAL(1.0)
+                                         : ARRAY_1D_ACCESS(stddev, j);
+      });
 
   /* Center and reduce the column vectors. */
-  for (int i = 0; i < _PB_N; i++)
-    for (int j = 0; j < _PB_M; j++) {
-      ARRAY_2D_ACCESS(data, i, j) -= ARRAY_1D_ACCESS(mean, j);
-      ARRAY_2D_ACCESS(data, i, j) /=
-          SQRT_FUN(float_n) * ARRAY_1D_ACCESS(stddev, j);
-    }
+  Kokkos::parallel_for(
+      policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
+        ARRAY_2D_ACCESS(data, i, j) -= ARRAY_1D_ACCESS(mean, j);
+        ARRAY_2D_ACCESS(data, i, j) /=
+            SQRT_FUN(float_n) * ARRAY_1D_ACCESS(stddev, j);
+      });
 
   /* Calculate the m * m correlation matrix. */
-  for (int i = 0; i < _PB_M - 1; i++) {
-    ARRAY_2D_ACCESS(corr, i, i) = SCALAR_VAL(1.0);
-    for (int j = i + 1; j < _PB_M; j++) {
-      ARRAY_2D_ACCESS(corr, i, j) = SCALAR_VAL(0.0);
-      for (int k = 0; k < _PB_N; k++)
-        ARRAY_2D_ACCESS(corr, i, j) +=
-            (ARRAY_2D_ACCESS(data, k, i) * ARRAY_2D_ACCESS(data, k, j));
-      ARRAY_2D_ACCESS(corr, j, i) = ARRAY_2D_ACCESS(corr, i, j);
-    }
-  }
+  Kokkos::parallel_for(
+      policy_1D_1, KOKKOS_LAMBDA(const int i) {
+        ARRAY_2D_ACCESS(corr, i, i) = SCALAR_VAL(1.0);
+        for (int j = i + 1; j < _PB_M; j++) {
+          ARRAY_2D_ACCESS(corr, i, j) = SCALAR_VAL(0.0);
+          for (int k = 0; k < _PB_N; k++)
+            ARRAY_2D_ACCESS(corr, i, j) +=
+                (ARRAY_2D_ACCESS(data, k, i) * ARRAY_2D_ACCESS(data, k, j));
+          ARRAY_2D_ACCESS(corr, j, i) = ARRAY_2D_ACCESS(corr, i, j);
+        }
+      });
   ARRAY_2D_ACCESS(corr, _PB_M - 1, _PB_M - 1) = SCALAR_VAL(1.0);
 #else
   for (int j = 0; j < _PB_M; j++) {
@@ -150,7 +157,6 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
 }
 
 int main(int argc, char **argv) {
-
   INITIALIZE;
 
   /* Retrieve problem size. */
