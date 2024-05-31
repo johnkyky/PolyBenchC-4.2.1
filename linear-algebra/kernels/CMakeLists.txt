@@ -1,0 +1,6 @@
+add_subdirectory(2mm)
+add_subdirectory(3mm)
+add_subdirectory(atax)
+add_subdirectory(bicg)
+add_subdirectory(doitgen)
+add_subdirectory(mvt)
