@@ -46,14 +46,16 @@ static void print_array(int n,
 
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("table");
+  fprintf(POLYBENCH_DUMP_TARGET, "\n");
   for (int i = 0; i < n; i++) {
-    for (int j = i; j < n; j++) {
-      if (t % 20 == 0)
-        fprintf(POLYBENCH_DUMP_TARGET, "\n");
+    for (int j = 0; j < n; j++) {
+      /*if (t % 20 == 0)*/
+      /*  fprintf(POLYBENCH_DUMP_TARGET, "\n");*/
       fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
               ARRAY_2D_ACCESS(table, i, j));
       t++;
     }
+    fprintf(POLYBENCH_DUMP_TARGET, "\n");
   }
   POLYBENCH_DUMP_END("table");
   POLYBENCH_DUMP_FINISH;
@@ -71,41 +73,71 @@ static void print_array(int n,
 static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
                             ARRAY_2D_FUNC_PARAM(DATA_TYPE, table, N, N, n, n)) {
 #pragma scop
-  for (int i = _PB_N - 1; i >= 0; i--) {
-    for (int j = i + 1; j < _PB_N; j++) {
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
 
-      if (j - 1 >= 0)
-        ARRAY_2D_ACCESS(table, i, j) = max_score(
-            ARRAY_2D_ACCESS(table, i, j), ARRAY_2D_ACCESS(table, i, j - 1));
-      if (i + 1 < _PB_N)
-        ARRAY_2D_ACCESS(table, i, j) = max_score(
-            ARRAY_2D_ACCESS(table, i, j), ARRAY_2D_ACCESS(table, i + 1, j));
+  Kokkos::parallel_for(
+      policy, KOKKOS_LAMBDA(const int i) {
+        for (int j = _PB_N - i; j < _PB_N; j++) {
 
-      if (j - 1 >= 0 && i + 1 < _PB_N) {
-        /* don't allow adjacent elements to bond */
-        if (i < j - 1)
-          ARRAY_2D_ACCESS(table, i, j) = max_score(
-              ARRAY_2D_ACCESS(table, i, j),
-              ARRAY_2D_ACCESS(table, i + 1, j - 1) +
-                  match(ARRAY_1D_ACCESS(seq, i), ARRAY_1D_ACCESS(seq, j)));
-        else
-          ARRAY_2D_ACCESS(table, i, j) =
-              max_score(ARRAY_2D_ACCESS(table, i, j),
-                        ARRAY_2D_ACCESS(table, i + 1, j - 1));
+          if (j - 1 >= 0) {
+            table(i, j) = max_score(table(i, j), table(i, j - 1));
+          }
+          if (i > 0) {
+            table(i, j) = max_score(table(i, j), table(i - 1, j));
+          }
+
+          if (j - 1 >= 0 && i > 0) {
+            /* don't allow adjacent elements to bond */
+            if (_PB_N - i < j) {
+              table(i, j) =
+                  max_score(table(i, j), table(i - 1, j - 1) +
+                                             match(seq(_PB_N - i - 1), seq(j)));
+            } else {
+              table(i, j) = max_score(table(i, j), table(i - 1, j - 1));
+            }
+          }
+
+          for (int k = _PB_N - i; k < j; k++) {
+            table(i, j) =
+                max_score(table(i, j), table(i, k) + table(_PB_N - k - 1, j));
+          }
+        }
+      });
+
+#else
+  for (int i = 0; i < _PB_N; i++) {
+    for (int j = _PB_N - i; j < _PB_N; j++) {
+
+      if (j - 1 >= 0) {
+        table[i][j] = max_score(table[i][j], table[i][j - 1]);
+      }
+      if (i > 0) {
+        table[i][j] = max_score(table[i][j], table[i - 1][j]);
       }
 
-      for (int k = i + 1; k < j; k++) {
-        ARRAY_2D_ACCESS(table, i, j) = max_score(
-            ARRAY_2D_ACCESS(table, i, j),
-            ARRAY_2D_ACCESS(table, i, k) + ARRAY_2D_ACCESS(table, k + 1, j));
+      if (j - 1 >= 0 && i > 0) {
+        /* don't allow adjacent elements to bond */
+        if (_PB_N - i < j) {
+          table[i][j] =
+              max_score(table[i][j], table[i - 1][j - 1] +
+                                         match(seq[_PB_N - i - 1], seq[j]));
+        } else {
+          table[i][j] = max_score(table[i][j], table[i - 1][j - 1]);
+        }
+      }
+
+      for (int k = _PB_N - i; k < j; k++) {
+        table[i][j] =
+            max_score(table[i][j], table[i][k] + table[_PB_N - k - 1][j]);
       }
     }
   }
+#endif
 #pragma endscop
 }
 
 int main(int argc, char **argv) {
-
   INITIALIZE;
 
   /* Retrieve problem size. */
