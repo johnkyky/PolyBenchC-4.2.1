@@ -110,48 +110,42 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
   ARRAY_2D_ACCESS(corr, _PB_M - 1, _PB_M - 1) = SCALAR_VAL(1.0);
 #else
   for (int j = 0; j < _PB_M; j++) {
-    ARRAY_1D_ACCESS(mean, j) = SCALAR_VAL(0.0);
+    mean[j] = SCALAR_VAL(0.0);
     for (int i = 0; i < _PB_N; i++)
-      ARRAY_1D_ACCESS(mean, j) += ARRAY_2D_ACCESS(data, i, j);
-    ARRAY_1D_ACCESS(mean, j) /= float_n;
+      mean[j] += data[i][j];
+    mean[j] /= float_n;
   }
 
   for (int j = 0; j < _PB_M; j++) {
-    ARRAY_1D_ACCESS(stddev, j) = SCALAR_VAL(0.0);
+    stddev[j] = SCALAR_VAL(0.0);
     for (int i = 0; i < _PB_N; i++)
-      ARRAY_1D_ACCESS(stddev, j) +=
-          (ARRAY_2D_ACCESS(data, i, j) - ARRAY_1D_ACCESS(mean, j)) *
-          (ARRAY_2D_ACCESS(data, i, j) - ARRAY_1D_ACCESS(mean, j));
-    ARRAY_1D_ACCESS(stddev, j) /= float_n;
-    ARRAY_1D_ACCESS(stddev, j) = SQRT_FUN(ARRAY_1D_ACCESS(stddev, j));
+      stddev[j] += (data[i][j] - mean[j]) * (data[i][j] - mean[j]);
+    stddev[j] /= float_n;
+    stddev[j] = SQRT_FUN(stddev[j]);
     /* The following in an inelegant but usual way to handle
        near-zero std. dev. values, which below would cause a zero-
        divide. */
-    ARRAY_1D_ACCESS(stddev, j) = ARRAY_1D_ACCESS(stddev, j) <= eps
-                                     ? SCALAR_VAL(1.0)
-                                     : ARRAY_1D_ACCESS(stddev, j);
+    stddev[j] = stddev[j] <= eps ? SCALAR_VAL(1.0) : stddev[j];
   }
 
   /* Center and reduce the column vectors. */
   for (int i = 0; i < _PB_N; i++)
     for (int j = 0; j < _PB_M; j++) {
-      ARRAY_2D_ACCESS(data, i, j) -= ARRAY_1D_ACCESS(mean, j);
-      ARRAY_2D_ACCESS(data, i, j) /=
-          SQRT_FUN(float_n) * ARRAY_1D_ACCESS(stddev, j);
+      data[i][j] -= mean[j];
+      data[i][j] /= SQRT_FUN(float_n) * stddev[j];
     }
 
   /* Calculate the m * m correlation matrix. */
   for (int i = 0; i < _PB_M - 1; i++) {
-    ARRAY_2D_ACCESS(corr, i, i) = SCALAR_VAL(1.0);
+    corr[i][i] = SCALAR_VAL(1.0);
     for (int j = i + 1; j < _PB_M; j++) {
-      ARRAY_2D_ACCESS(corr, i, j) = SCALAR_VAL(0.0);
+      corr[i][j] = SCALAR_VAL(0.0);
       for (int k = 0; k < _PB_N; k++)
-        ARRAY_2D_ACCESS(corr, i, j) +=
-            (ARRAY_2D_ACCESS(data, k, i) * ARRAY_2D_ACCESS(data, k, j));
-      ARRAY_2D_ACCESS(corr, j, i) = ARRAY_2D_ACCESS(corr, i, j);
+        corr[i][j] += (data[k][i] * data[k][j]);
+      corr[j][i] = corr[i][j];
     }
   }
-  ARRAY_2D_ACCESS(corr, _PB_M - 1, _PB_M - 1) = SCALAR_VAL(1.0);
+  corr[_PB_M - 1][_PB_M - 1] = SCALAR_VAL(1.0);
 #endif
 #pragma endscop
 }

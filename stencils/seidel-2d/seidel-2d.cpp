@@ -65,13 +65,10 @@ static void kernel_seidel_2d(int tsteps, int n,
   for (int t = 0; t <= _PB_TSTEPS - 1; t++)
     for (int i = 1; i <= _PB_N - 2; i++)
       for (int j = 1; j <= _PB_N - 2; j++)
-        ARRAY_2D_ACCESS(A, i, j) =
-            (ARRAY_2D_ACCESS(A, i - 1, j - 1) + ARRAY_2D_ACCESS(A, i - 1, j) +
-             ARRAY_2D_ACCESS(A, i - 1, j + 1) + ARRAY_2D_ACCESS(A, i, j - 1) +
-             ARRAY_2D_ACCESS(A, i, j) + ARRAY_2D_ACCESS(A, i, j + 1) +
-             ARRAY_2D_ACCESS(A, i + 1, j - 1) + ARRAY_2D_ACCESS(A, i + 1, j) +
-             ARRAY_2D_ACCESS(A, i + 1, j + 1)) /
-            SCALAR_VAL(9.0);
+        A[i][j] = (A[i - 1][j - 1] + A[i - 1][j] + A[i - 1][j + 1] +
+                   A[i][j - 1] + A[i][j] + A[i][j + 1] + A[i + 1][j - 1] +
+                   A[i + 1][j] + A[i + 1][j + 1]) /
+                  SCALAR_VAL(9.0);
 #endif
 #pragma endscop
 }

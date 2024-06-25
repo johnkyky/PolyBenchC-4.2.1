@@ -84,24 +84,23 @@ static void kernel_covariance(int m, int n, DATA_TYPE float_n,
       });
 #else
   for (int j = 0; j < _PB_M; j++) {
-    ARRAY_1D_ACCESS(mean, j) = SCALAR_VAL(0.0);
+    mean[j] = SCALAR_VAL(0.0);
     for (int i = 0; i < _PB_N; i++)
-      ARRAY_1D_ACCESS(mean, j) += ARRAY_2D_ACCESS(data, i, j);
-    ARRAY_1D_ACCESS(mean, j) /= float_n;
+      mean[j] += data[i][j];
+    mean[j] /= float_n;
   }
 
   for (int i = 0; i < _PB_N; i++)
     for (int j = 0; j < _PB_M; j++)
-      ARRAY_2D_ACCESS(data, i, j) -= ARRAY_1D_ACCESS(mean, j);
+      data[i][j] -= mean[j];
 
   for (int i = 0; i < _PB_M; i++)
     for (int j = i; j < _PB_M; j++) {
-      ARRAY_2D_ACCESS(cov, i, j) = SCALAR_VAL(0.0);
+      cov[i][j] = SCALAR_VAL(0.0);
       for (int k = 0; k < _PB_N; k++)
-        ARRAY_2D_ACCESS(cov, i, j) +=
-            ARRAY_2D_ACCESS(data, k, i) * ARRAY_2D_ACCESS(data, k, j);
-      ARRAY_2D_ACCESS(cov, i, j) /= (float_n - SCALAR_VAL(1.0));
-      ARRAY_2D_ACCESS(cov, j, i) = ARRAY_2D_ACCESS(cov, i, j);
+        cov[i][j] += data[k][i] * data[k][j];
+      cov[i][j] /= (float_n - SCALAR_VAL(1.0));
+      cov[j][i] = cov[i][j];
     }
 #endif
 #pragma endscop

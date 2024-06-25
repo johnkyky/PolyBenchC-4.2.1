@@ -76,18 +76,12 @@ static void kernel_jacobi_2d(int tsteps, int n,
   for (int t = 0; t < _PB_TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++)
       for (int j = 1; j < _PB_N - 1; j++)
-        ARRAY_2D_ACCESS(B, i, j) =
-            SCALAR_VAL(0.2) *
-            (ARRAY_2D_ACCESS(A, i, j) + ARRAY_2D_ACCESS(A, i, j - 1) +
-             ARRAY_2D_ACCESS(A, i, 1 + j) + ARRAY_2D_ACCESS(A, 1 + i, j) +
-             ARRAY_2D_ACCESS(A, i - 1, j));
+        B[i][j] = SCALAR_VAL(0.2) * (A[i][j] + A[i][j - 1] + A[i][1 + j] +
+                                     A[1 + i][j] + A[i - 1][j]);
     for (int i = 1; i < _PB_N - 1; i++)
       for (int j = 1; j < _PB_N - 1; j++)
-        ARRAY_2D_ACCESS(A, i, j) =
-            SCALAR_VAL(0.2) *
-            (ARRAY_2D_ACCESS(B, i, j) + ARRAY_2D_ACCESS(B, i, j - 1) +
-             ARRAY_2D_ACCESS(B, i, 1 + j) + ARRAY_2D_ACCESS(B, 1 + i, j) +
-             ARRAY_2D_ACCESS(B, i - 1, j));
+        A[i][j] = SCALAR_VAL(0.2) * (B[i][j] + B[i][j - 1] + B[i][1 + j] +
+                                     B[1 + i][j] + B[i - 1][j]);
   }
 #endif
 #pragma endscop

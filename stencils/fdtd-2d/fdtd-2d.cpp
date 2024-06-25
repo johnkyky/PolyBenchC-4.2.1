@@ -84,7 +84,7 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, _fict_, TMAX, tmax)) {
 #pragma scop
 #if defined(POLYBENCH_KOKKOS)
-  const auto policy_1D_y = Kokkos::RangePolicy(0, ny);
+  const auto policy_1D_y = Kokkos::RangePolicy<>(0, ny);
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 0}, {nx, ny});
   const auto policy_2D_2 =
@@ -127,26 +127,17 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
 #else
   for (int t = 0; t < _PB_TMAX; t++) {
     for (int j = 0; j < _PB_NY; j++)
-      ARRAY_2D_ACCESS(ey, 0, j) = ARRAY_1D_ACCESS(_fict_, t);
+      ey[0][j] = _fict_[t];
     for (int i = 1; i < _PB_NX; i++)
       for (int j = 0; j < _PB_NY; j++)
-        ARRAY_2D_ACCESS(ey, i, j) =
-            ARRAY_2D_ACCESS(ey, i, j) -
-            SCALAR_VAL(0.5) *
-                (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i - 1, j));
+        ey[i][j] = ey[i][j] - SCALAR_VAL(0.5) * (hz[i][j] - hz[i - 1][j]);
     for (int i = 0; i < _PB_NX; i++)
       for (int j = 1; j < _PB_NY; j++)
-        ARRAY_2D_ACCESS(ex, i, j) =
-            ARRAY_2D_ACCESS(ex, i, j) -
-            SCALAR_VAL(0.5) *
-                (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i, j - 1));
+        ex[i][j] = ex[i][j] - SCALAR_VAL(0.5) * (hz[i][j] - hz[i][j - 1]);
     for (int i = 0; i < _PB_NX - 1; i++)
       for (int j = 0; j < _PB_NY - 1; j++)
-        ARRAY_2D_ACCESS(hz, i, j) =
-            ARRAY_2D_ACCESS(hz, i, j) -
-            SCALAR_VAL(0.7) *
-                (ARRAY_2D_ACCESS(ex, i, j + 1) - ARRAY_2D_ACCESS(ex, i, j) +
-                 ARRAY_2D_ACCESS(ey, i + 1, j) - ARRAY_2D_ACCESS(ey, i, j));
+        hz[i][j] = hz[i][j] - SCALAR_VAL(0.7) * (ex[i][j + 1] - ex[i][j] +
+                                                 ey[i + 1][j] - ey[i][j]);
   }
 #endif
 #pragma endscop

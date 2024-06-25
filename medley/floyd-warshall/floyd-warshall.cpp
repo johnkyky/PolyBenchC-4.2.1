@@ -65,15 +65,11 @@ static void kernel_floyd_warshall(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, path, N,
       });
 #else
   for (int k = 0; k < _PB_N; k++) {
-    for (int i = 0; i < _PB_N; i++) {
-      for (int j = 0; j < _PB_N; j++) {
-        ARRAY_2D_ACCESS(path, i, j) =
-            ARRAY_2D_ACCESS(path, i, j) <
-                    ARRAY_2D_ACCESS(path, i, k) + ARRAY_2D_ACCESS(path, k, j)
-                ? ARRAY_2D_ACCESS(path, i, j)
-                : ARRAY_2D_ACCESS(path, i, k) + ARRAY_2D_ACCESS(path, k, j);
-      }
-    }
+    for (int i = 0; i < _PB_N; i++)
+      for (int j = 0; j < _PB_N; j++)
+        path[i][j] = path[i][j] < path[i][k] + path[k][j]
+                         ? path[i][j]
+                         : path[i][k] + path[k][j];
   }
 #endif
 #pragma endscop

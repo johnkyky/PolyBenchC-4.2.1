@@ -67,13 +67,9 @@ static void kernel_jacobi_1d(int tsteps, int n,
 #else
   for (int t = 0; t < _PB_TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++)
-      ARRAY_1D_ACCESS(B, i) =
-          0.33333 * (ARRAY_1D_ACCESS(A, i - 1) + ARRAY_1D_ACCESS(A, i) +
-                     ARRAY_1D_ACCESS(A, i + 1));
+      B[i] = 0.33333 * (A[i - 1] + A[i] + A[i + 1]);
     for (int i = 1; i < _PB_N - 1; i++)
-      ARRAY_1D_ACCESS(A, i) =
-          0.33333 * (ARRAY_1D_ACCESS(B, i - 1) + ARRAY_1D_ACCESS(B, i) +
-                     ARRAY_1D_ACCESS(B, i + 1));
+      A[i] = 0.33333 * (B[i - 1] + B[i] + B[i + 1]);
   }
 #endif
 #pragma endscop
