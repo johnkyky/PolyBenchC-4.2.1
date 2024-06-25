@@ -95,33 +95,22 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
   for (int t = 0; t < _PB_TMAX; t++) {
 
     Kokkos::parallel_for(
-        policy_1D_y, KOKKOS_LAMBDA(const int j) {
-          ARRAY_2D_ACCESS(ey, 0, j) = ARRAY_1D_ACCESS(_fict_, t);
-        });
+        policy_1D_y, KOKKOS_LAMBDA(const int j) { ey(0, j) = _fict_(t); });
 
     Kokkos::parallel_for(
         policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
-          ARRAY_2D_ACCESS(ey, i, j) =
-              ARRAY_2D_ACCESS(ey, i, j) -
-              SCALAR_VAL(0.5) *
-                  (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i - 1, j));
+          ey(i, j) = ey(i, j) - SCALAR_VAL(0.5) * (hz(i, j) - hz(i - 1, j));
         });
 
     Kokkos::parallel_for(
         policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
-          ARRAY_2D_ACCESS(ex, i, j) =
-              ARRAY_2D_ACCESS(ex, i, j) -
-              SCALAR_VAL(0.5) *
-                  (ARRAY_2D_ACCESS(hz, i, j) - ARRAY_2D_ACCESS(hz, i, j - 1));
+          ex(i, j) = ex(i, j) - SCALAR_VAL(0.5) * (hz(i, j) - hz(i, j - 1));
         });
 
     Kokkos::parallel_for(
         policy_2D_3, KOKKOS_LAMBDA(const int i, const int j) {
-          ARRAY_2D_ACCESS(hz, i, j) =
-              ARRAY_2D_ACCESS(hz, i, j) -
-              SCALAR_VAL(0.7) *
-                  (ARRAY_2D_ACCESS(ex, i, j + 1) - ARRAY_2D_ACCESS(ex, i, j) +
-                   ARRAY_2D_ACCESS(ey, i + 1, j) - ARRAY_2D_ACCESS(ey, i, j));
+          hz(i, j) = hz(i, j) - SCALAR_VAL(0.7) * (ex(i, j + 1) - ex(i, j) +
+                                                   ey(i + 1, j) - ey(i, j));
         });
   }
 #else
