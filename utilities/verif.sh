@@ -105,7 +105,7 @@ mkdir -p $output_dir
 
 polybench_dir=$(pwd)/..
 
-dataset="LARGE"
+dataset="MINI"
 
 echo_replace "Generating build files for Polybench standard versionalallalla\r"
 cmake -S $polybench_dir -B $build_std -DCMAKE_BUILD_TYPE=Release -DPB_DUMP_ARRAYS=ON -DPB_DATASET_SIZE=${dataset} >>$output_dir/log.txt
