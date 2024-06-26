@@ -46,7 +46,6 @@ static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
    including the call and return. */
 static void kernel_seidel_2d(int tsteps, int n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Serial, Kokkos::Rank<2>>(
       {1, 1}, {n - 1, n - 1});
@@ -59,6 +58,7 @@ static void kernel_seidel_2d(int tsteps, int n,
                     SCALAR_VAL(9.0);
         });
 #else
+#pragma scop
   for (int t = 0; t <= _PB_TSTEPS - 1; t++)
     for (int i = 1; i <= _PB_N - 2; i++)
       for (int j = 1; j <= _PB_N - 2; j++)
@@ -66,8 +66,8 @@ static void kernel_seidel_2d(int tsteps, int n,
                    A[i][j - 1] + A[i][j] + A[i][j + 1] + A[i + 1][j - 1] +
                    A[i + 1][j] + A[i + 1][j + 1]) /
                   SCALAR_VAL(9.0);
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {

@@ -50,7 +50,6 @@ static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 static void kernel_jacobi_2d(int tsteps, int n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n),
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, N, N, n, n)) {
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 1}, {n - 1, n - 1});
@@ -67,6 +66,7 @@ static void kernel_jacobi_2d(int tsteps, int n,
         });
   }
 #else
+#pragma scop
   for (int t = 0; t < _PB_TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++)
       for (int j = 1; j < _PB_N - 1; j++)
@@ -77,8 +77,8 @@ static void kernel_jacobi_2d(int tsteps, int n,
         A[i][j] = SCALAR_VAL(0.2) * (B[i][j] + B[i][j - 1] + B[i][1 + j] +
                                      B[1 + i][j] + B[i - 1][j]);
   }
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {

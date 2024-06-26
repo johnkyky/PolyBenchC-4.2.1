@@ -82,7 +82,6 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, ey, NX, NY, nx, ny),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny),
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, _fict_, TMAX, tmax)) {
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   const auto policy_1D_y = Kokkos::RangePolicy<>(0, ny);
   const auto policy_2D_1 =
@@ -114,6 +113,7 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
         });
   }
 #else
+#pragma scop
   for (int t = 0; t < _PB_TMAX; t++) {
     for (int j = 0; j < _PB_NY; j++)
       ey[0][j] = _fict_[t];
@@ -128,8 +128,8 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
         hz[i][j] = hz[i][j] - SCALAR_VAL(0.7) * (ex[i][j + 1] - ex[i][j] +
                                                  ey[i + 1][j] - ey[i][j]);
   }
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {

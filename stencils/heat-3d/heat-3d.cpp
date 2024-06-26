@@ -54,7 +54,6 @@ static void kernel_heat_3d(int tsteps, int n,
                            ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n),
                            ARRAY_3D_FUNC_PARAM(DATA_TYPE, B, N, N, N, n, n,
                                                n)) {
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1, 1, 1}, {n - 1, n - 1, n - 1});
@@ -87,6 +86,7 @@ static void kernel_heat_3d(int tsteps, int n,
         });
   }
 #else
+#pragma scop
   for (int t = 1; t <= TSTEPS; t++) {
     for (int i = 1; i < _PB_N - 1; i++) {
       for (int j = 1; j < _PB_N - 1; j++) {
@@ -121,8 +121,8 @@ static void kernel_heat_3d(int tsteps, int n,
       }
     }
   }
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {
