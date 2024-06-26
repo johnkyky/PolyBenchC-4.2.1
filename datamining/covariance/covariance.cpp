@@ -52,7 +52,6 @@ static void kernel_covariance(int m, int n, DATA_TYPE float_n,
                               ARRAY_2D_FUNC_PARAM(DATA_TYPE, data, N, M, n, m),
                               ARRAY_2D_FUNC_PARAM(DATA_TYPE, cov, M, M, m, m),
                               ARRAY_1D_FUNC_PARAM(DATA_TYPE, mean, M, m)) {
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   const auto policy_1D = Kokkos::RangePolicy<>(0, m);
   const auto policy_2D_1 =
@@ -81,6 +80,7 @@ static void kernel_covariance(int m, int n, DATA_TYPE float_n,
         cov(j, i) = cov(i, j);
       });
 #else
+#pragma scop
   for (int j = 0; j < _PB_M; j++) {
     mean[j] = SCALAR_VAL(0.0);
     for (int i = 0; i < _PB_N; i++)
@@ -100,8 +100,8 @@ static void kernel_covariance(int m, int n, DATA_TYPE float_n,
       cov[i][j] /= (float_n - SCALAR_VAL(1.0));
       cov[j][i] = cov[i][j];
     }
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {

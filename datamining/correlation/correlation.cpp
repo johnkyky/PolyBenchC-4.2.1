@@ -55,7 +55,6 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
                                ARRAY_1D_FUNC_PARAM(DATA_TYPE, stddev, M, m)) {
   DATA_TYPE eps = SCALAR_VAL(0.1);
 
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
 
   const auto policy_1D_1 = Kokkos::RangePolicy<>(0, m);
@@ -103,6 +102,7 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
       });
   corr(_PB_M - 1, _PB_M - 1) = SCALAR_VAL(1.0);
 #else
+#pragma scop
   for (int j = 0; j < _PB_M; j++) {
     mean[j] = SCALAR_VAL(0.0);
     for (int i = 0; i < _PB_N; i++)
@@ -140,8 +140,8 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
     }
   }
   corr[_PB_M - 1][_PB_M - 1] = SCALAR_VAL(1.0);
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {
