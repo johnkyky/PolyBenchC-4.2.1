@@ -10,43 +10,43 @@
 #ifndef _FDTD_2D_H
 #define _FDTD_2D_H
 
-/* Default to LARGE_DATASET. */
+/* Default to MEDIUM_DATASET. */
 #if !defined(MINI_DATASET) && !defined(SMALL_DATASET) &&                       \
     !defined(MEDIUM_DATASET) && !defined(LARGE_DATASET) &&                     \
     !defined(EXTRALARGE_DATASET)
-#define LARGE_DATASET
+#define MEDIUM_DATASET
 #endif
 
 #if !defined(TMAX) && !defined(NX) && !defined(NY)
 /* Define sample dataset sizes. */
 #ifdef MINI_DATASET
-#define TMAX 20
-#define NX 20
-#define NY 30
+#define TMAX 50
+#define NX 40
+#define NY 60
 #endif
 
 #ifdef SMALL_DATASET
-#define TMAX 40
-#define NX 60
-#define NY 80
+#define TMAX 100
+#define NX 400
+#define NY 600
 #endif
 
 #ifdef MEDIUM_DATASET
-#define TMAX 100
-#define NX 200
-#define NY 240
+#define TMAX 250
+#define NX 900
+#define NY 1100
 #endif
 
 #ifdef LARGE_DATASET
 #define TMAX 500
-#define NX 1000
-#define NY 1200
+#define NX 9000
+#define NY 11000
 #endif
 
 #ifdef EXTRALARGE_DATASET
 #define TMAX 1000
-#define NX 2000
-#define NY 2600
+#define NX 19000
+#define NY 21000
 #endif
 
 #endif /* !(TMAX NX NY) */

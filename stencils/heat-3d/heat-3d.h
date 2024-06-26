@@ -10,38 +10,38 @@
 #ifndef _HEAT_3D_H
 #define _HEAT_3D_H
 
-/* Default to LARGE_DATASET. */
+/* Default to MEDIUM_DATASET. */
 #if !defined(MINI_DATASET) && !defined(SMALL_DATASET) &&                       \
     !defined(MEDIUM_DATASET) && !defined(LARGE_DATASET) &&                     \
     !defined(EXTRALARGE_DATASET)
-#define LARGE_DATASET
+#define MEDIUM_DATASET
 #endif
 
 #if !defined(TSTEPS) && !defined(N)
 /* Define sample dataset sizes. */
 #ifdef MINI_DATASET
-#define TSTEPS 20
-#define N 10
+#define TSTEPS 25
+#define N 100
 #endif
 
 #ifdef SMALL_DATASET
-#define TSTEPS 40
-#define N 20
+#define TSTEPS 100
+#define N 500
 #endif
 
 #ifdef MEDIUM_DATASET
-#define TSTEPS 100
-#define N 40
+#define TSTEPS 250
+#define N 1000
 #endif
 
 #ifdef LARGE_DATASET
 #define TSTEPS 500
-#define N 120
+#define N 10000
 #endif
 
 #ifdef EXTRALARGE_DATASET
 #define TSTEPS 1000
-#define N 200
+#define N 20000
 #endif
 
 #endif /* !(TSTEPS N) */
