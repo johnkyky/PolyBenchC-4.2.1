@@ -72,7 +72,6 @@ static void print_array(int n,
 /// TODO: convert to kokkos kernel
 static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
                             ARRAY_2D_FUNC_PARAM(DATA_TYPE, table, N, N, n, n)) {
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
 
@@ -106,6 +105,7 @@ static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
       });
 
 #else
+#pragma scop
   for (int i = 0; i < _PB_N; i++) {
     for (int j = _PB_N - i; j < _PB_N; j++) {
 
@@ -133,8 +133,8 @@ static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
       }
     }
   }
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {

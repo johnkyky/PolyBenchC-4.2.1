@@ -51,7 +51,6 @@ static void print_array(int n,
    including the call and return. */
 static void kernel_floyd_warshall(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, path, N,
                                                              N, n, n)) {
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::MDRangePolicy<Kokkos::Serial, Kokkos::Rank<3>>(
       {0, 0, 0}, {n, n, n});
@@ -62,6 +61,7 @@ static void kernel_floyd_warshall(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, path, N,
                          : path(i, k) + path(k, j);
       });
 #else
+#pragma scop
   for (int k = 0; k < _PB_N; k++) {
     for (int i = 0; i < _PB_N; i++)
       for (int j = 0; j < _PB_N; j++)
@@ -69,8 +69,8 @@ static void kernel_floyd_warshall(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, path, N,
                          ? path[i][j]
                          : path[i][k] + path[k][j];
   }
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {

@@ -66,7 +66,6 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
   DATA_TYPE a1, a2, a3, a4, a5, a6, a7, a8;
   DATA_TYPE b1, b2, c1, c2;
 
-#pragma scop
 #if defined(POLYBENCH_KOKKOS)
   k = (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) *
       (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) /
@@ -151,6 +150,7 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
         imgOut(i, j) = c2 * (y1(i, j) + y2(i, j));
       });
 #else
+#pragma scop
   k = (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) *
       (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) /
       (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * alpha * EXP_FUN(-alpha) -
@@ -223,8 +223,8 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
   for (int i = 0; i < _PB_W; i++)
     for (int j = 0; j < _PB_H; j++)
       imgOut[i][j] = c2 * (y1[i][j] + y2[i][j]);
-#endif
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {
