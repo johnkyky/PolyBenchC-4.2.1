@@ -27,10 +27,14 @@
 #pragma once
 
 #include <stdlib.h>
-#include <string.h>
 
 #if defined(POLYBENCH_KOKKOS)
 #include <Kokkos_Core.hpp>
+#if defined(POLYBENCH_USE_POLLY)
+constexpr bool usePolyOpt = Kokkos::usePolyOpt;
+#else
+constexpr bool usePolyOpt = not Kokkos::usePolyOpt;
+#endif
 #endif
 
 /* Array padding. By default, none is used. */
@@ -365,7 +369,8 @@ extern const unsigned int polybench_papi_eventlist[];
 #endif
 
 /* Timing support. */
-#if defined(POLYBENCH_TIME) || defined(POLYBENCH_GFLOPS)
+#if defined(POLYBENCH_TIME) || defined(POLYBENCH_CYCLE_ACCURATE_TIMER) ||      \
+    defined(POLYBENCH_GFLOPS)
 #undef polybench_start_instruments
 #undef polybench_stop_instruments
 #undef polybench_print_instruments

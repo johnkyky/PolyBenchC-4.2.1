@@ -1,8 +1,19 @@
 #!/bin/bash
 
-build_std=/tmp/build_std
-build_kokkos=/tmp/build_kokkos
-output_dir=/tmp/output
+### variables
+process_dir=/tmp/polybench
+build_std=${process_dir}/build_std
+build_kokkos=${process_dir}/build_kokkos
+build_polly=${process_dir}/build_polly
+output_dir=${process_dir}/output
+
+kokkos_install_dir=/home/johnkyky/Documents/Phd_project/kokkos/install/lib64/cmake/Kokkos
+llvm_install_dir=/home/johnkyky/Documents/Phd_project/llvm/install/bin/clang++
+
+polybench_dir=$(pwd)/..
+dataset="MEDIUM"
+
+###
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,127 +25,187 @@ WHITE='\033[0;37m'
 NC='\033[0m' # No Color
 
 function echo_color() {
-	local color="$1"
-	local message="$2"
-	echo -e "${color}${message}${NC}"
+  local color="$1"
+  local message="$2"
+  echo -e "${color}${message}${NC}"
 }
 
 function echo_replace() {
-	echo -ne "\r\033[K"
-	echo -ne $1
+  echo -ne "\r\033[K"
+  echo -ne $1
 }
 
 function check_exit_code() {
-	if [ $? -ne 0 ]; then
-		echo_color $RED "Error: $1"
-		exit 1
-	fi
+  if [ $? -ne 0 ]; then
+    echo_color $RED "Error: $1"
+    exit 1
+  fi
 }
 
 function display_row_line() {
-	printf "%s\n" "-------------------------------------------------------------------------------------------------------"
+  printf "%s\n" " ------------------------------------------------------------------------------------------------------------------------------------"
 }
 
 function display_row_title() {
-	printf "%-2s %-20s %-30s %-30s %-15s %-2s\n" "|" $1 "Time standard version" "Time kokkos version" "Check output" "|"
+  local kernel=$1
+  printf "%-2s %-20s %-30s %-30s %-30s %-15s %-2s\n" "|" ${kernel} "Time standard version" "Time kokkos version" "Time polly version" "Check output" "|"
 }
 
 function display_row_data() {
-	printf "%-2s %-20s %-30s %-30s $4%-15s${NC} %-2s\n" "|" $1 $2 $3 $5 "|"
+  local kernel=$1
+  local time_str=$2
+  local time_kokkos=$3
+  local time_polly=$4
+  local check_color=$5
+  local check_char=$6
+  printf "%-2s %-20s %-30s %-30s %-30s ${check_color}%-15s${NC} %-2s\n" "|" ${kernel} ${time_str} ${time_kokkos} ${time_polly} ${check_char} "|"
 }
 
 function measure_time() {
-	local start end elapsed
+  local start end elapsed
 
-	start=$(date +%s%3N)
-	"$@"
-	end=$(date +%s%3N)
+  start=$(date +%s%3N)
+  "$@"
+  end=$(date +%s%3N)
 
-	elapsed=$((end - start))
-	echo $elapsed
+  elapsed=$((end - start))
+  echo $elapsed
+}
+
+function run() {
+  "$@"
+  echo zizi
 }
 
 function run_polybench() {
-	local kernel_dir=$1
-	shift
-	local kernel_list=("$@")
+  local kernel_dir=$1
+  shift
+  local kernel_list=("$@")
 
-	display_row_line
-	display_row_title $kernel_dir
-	display_row_line
+  display_row_line
+  display_row_title $kernel_dir
+  display_row_line
 
-	for kernel in ${kernel_list[@]}; do
-		cd $build_std
-		echo_replace "Building ${kernel}_std"
-		make -j $kernel >>$output_dir/log.txt
-		check_exit_code "Error building ${kernel}_std"
-		echo_replace "Running $kernel standard version"
-		time_std=$(measure_time $build_std/${kernel_dir}/$kernel/$kernel 2>$output_dir/${kernel}_std.out)
-		check_exit_code "Error running ${kernel}_std"
+  for kernel in ${kernel_list[@]}; do
+    mkdir -p ${output_dir}/${kernel_dir}/${kernel}
 
-		cd $build_kokkos
-		echo_replace "Building ${kernel}_kokkos"
-		make -j $kernel >>$output_dir/log.txt
-		check_exit_code "Error building ${kernel}_kokkos"
-		echo_replace "Running $kernel kokkos version"
-		time_kokkos=$(measure_time $build_kokkos/${kernel_dir}/$kernel/$kernel 2>$output_dir/${kernel}_kokkos.out)
-		check_exit_code "Error running ${kernel}_kokkos"
+    cd ${build_std}
+    echo_replace "Building ${kernel}_std"
+    make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.compile
+    check_exit_code "Error building ${kernel}_std"
+    echo_replace "Running ${kernel} standard version"
+    ${build_std}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out
+    check_exit_code "Error running ${kernel}_std"
+    time_std=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time)
 
-		echo_replace "Comparing output"
+    cd ${build_kokkos}
+    echo_replace "Building ${kernel}_kokkos"
+    make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.compile
+    check_exit_code "Error building ${kernel}_kokkos"
+    echo_replace "Running ${kernel} kokkos version"
+    ${build_kokkos}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.out
+    check_exit_code "Error running ${kernel}_kokkos"
+    time_kokkos=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time)
 
-		# check_output="┌∩┐(◣_◢)┌∩┐"
-		check_output="X"
-		check_color=$RED
-		if cmp -s $output_dir/${kernel}_std.out $output_dir/${kernel}_kokkos.out; then
-			check_output="V"
-			check_color=$GREEN
-		fi
+    cd ${build_polly}
+    echo_replace "Building ${kernel}_polly"
+    make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.compile
+    check_exit_code "Error building ${kernel}_polly"
+    echo_replace "Running ${kernel} polly version"
+    ${build_polly}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.out
+    check_exit_code "Error running ${kernel}_polly"
+    time_polly=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time)
 
-		echo_replace ""
-		display_row_data $kernel $time_std $time_kokkos $check_color $check_output
-		display_row_line
-	done
+    echo_replace "Comparing output"
+
+    # check_output="┌∩┐(◣_◢)┌∩┐"
+    check_output="V"
+    check_color=$GREEN
+    if ! cmp -s ${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out ${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.out; then
+      check_output="X"
+      check_color=$RED
+    fi
+    if ! cmp -s ${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out ${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.out; then
+      check_output="X"
+      check_color=$RED
+    fi
+
+    echo_replace ""
+    display_row_data ${kernel} ${time_std} ${time_kokkos} ${time_polly} ${check_color} ${check_output}
+    display_row_line
+  done
 }
 
-rm -fr $build_std $build_kokkos $output_dir
+rm -fr ${process_dir}
 
 echo_replace "Creating build directories"
+mkdir -p $process_dir
 mkdir -p $build_std
 mkdir -p $build_kokkos
+mkdir -p $build_polly
 mkdir -p $output_dir
 
-polybench_dir=$(pwd)/..
-
-dataset="MINI"
-
-echo_replace "Generating build files for Polybench standard versionalallalla\r"
-cmake -S $polybench_dir -B $build_std -DCMAKE_BUILD_TYPE=Release -DPB_DUMP_ARRAYS=ON -DPB_DATASET_SIZE=${dataset} >>$output_dir/log.txt
+echo_replace "Generating build files for Polybench standard version\r"
+cmake -S $polybench_dir \
+  -B $build_std \
+  -DCMAKE_CXX_COMPILER="/home/johnkyky/Documents/Phd_project/llvm/install/bin/clang++" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DPB_CYCLE_MONITORING=ON \
+  -DPB_DUMP_ARRAYS=ON \
+  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_std.log
 
 echo_replace "Generating build files for Polybench Kokkos version\r"
-cmake -S $polybench_dir -B $build_kokkos -DCMAKE_BUILD_TYPE=Release -DPB_DUMP_ARRAYS=ON -DPB_DATASET_SIZE=${dataset} -DPB_KOKKOS=ON -DKokkos_ENABLE_SERIAL=ON -DKokkos_ENABLE_OPENMP=ON >>$output_dir/log.txt
+cmake -S $polybench_dir \
+  -B $build_kokkos \
+  -DCMAKE_CXX_COMPILER=${llvm_install_dir} \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DPB_CYCLE_MONITORING=ON \
+  -DPB_KOKKOS=ON \
+  -DPB_KOKKOS_DIR=${kokkos_install_dir} \
+  -DKokkos_ENABLE_SERIAL=ON \
+  \
+  -DPB_DUMP_ARRAYS=ON \
+  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_kokkos.log # -DKokkos_ENABLE_OPENMP=OFF \
+
+echo_replace "Generating build files for Polybench Kokkos version with polly\r"
+cmake -S $polybench_dir \
+  -B $build_polly \
+  -DCMAKE_CXX_COMPILER=${llvm_install_dir} \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DPB_CYCLE_MONITORING=ON \
+  -DPB_KOKKOS=ON \
+  -DPB_KOKKOS_DIR=${kokkos_install_dir} \
+  -DPB_USE_POLLY=ON \
+  -DKokkos_ENABLE_SERIAL=ON \
+  \
+  -DPB_DUMP_ARRAYS=ON \
+  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_polly.log # -DKokkos_ENABLE_OPENMP=OFF \
 
 # set variable to the benchmarks you want to running
 export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
 
 # datamining
-dataminings_dir=datamining
-dataminings_kernel=("correlation" "covariance")
-run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
-
-echo -e "\n"
+# dataminings_dir=datamining
+# dataminings_kernel=("correlation" "covariance")
+# run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
+#
+# echo -e "\n"
 
 # medley
-kernel_dir=medley
-medley_kernel=("deriche" "floyd-warshall" "nussinov")
-run_polybench ${kernel_dir} "${medley_kernel[@]}"
-
-echo -e "\n"
+# kernel_dir=medley
+# medley_kernel=("deriche" "floyd-warshall" "nussinov")
+# run_polybench ${kernel_dir} "${medley_kernel[@]}"
+#
+# echo -e "\n"
 
 # stencils
 kernel_dir=stencils
-stencils_kernel=("adi" "fdtd-2d" "heat-3d" "jacobi-1d" "jacobi-2d" "seidel-2d")
+stencils_kernel=("adi")
+# stencils_kernel=("adi" "fdtd-2d" "heat-3d" "jacobi-1d" "jacobi-2d" "seidel-2d")
 run_polybench ${kernel_dir} "${stencils_kernel[@]}"
+
+echo -e "\n"
 
 # linear-algebra
 # linear-algebra/kernels/2mm/2mm.c
