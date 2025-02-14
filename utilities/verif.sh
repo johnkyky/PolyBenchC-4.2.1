@@ -11,7 +11,7 @@ kokkos_install_dir=/home/johnkyky/Documents/Phd_project/kokkos/install/lib64/cma
 llvm_install_dir=/home/johnkyky/Documents/Phd_project/llvm/install/bin/clang++
 
 polybench_dir=$(pwd)/..
-dataset="MEDIUM"
+dataset="MINI"
 
 ###
 
@@ -90,7 +90,7 @@ function run_polybench() {
     mkdir -p ${output_dir}/${kernel_dir}/${kernel}
 
     cd ${build_std}
-    echo_replace "Building ${kernel}_std"
+    echo_replace "Building ${kernel} standard version"
     make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.compile
     check_exit_code "Error building ${kernel}_std"
     echo_replace "Running ${kernel} standard version"
@@ -99,7 +99,7 @@ function run_polybench() {
     time_std=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time)
 
     cd ${build_kokkos}
-    echo_replace "Building ${kernel}_kokkos"
+    echo_replace "Building ${kernel} kokkos version"
     make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.compile
     check_exit_code "Error building ${kernel}_kokkos"
     echo_replace "Running ${kernel} kokkos version"
@@ -108,7 +108,7 @@ function run_polybench() {
     time_kokkos=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time)
 
     cd ${build_polly}
-    echo_replace "Building ${kernel}_polly"
+    echo_replace "Building ${kernel} polly version"
     make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.compile
     check_exit_code "Error building ${kernel}_polly"
     echo_replace "Running ${kernel} polly version"
