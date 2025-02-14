@@ -54,20 +54,20 @@ static void kernel_jacobi_2d(int tsteps, int n,
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 1}, {n - 1, n - 1});
   for (int t = 0; t < _PB_TSTEPS; t++) {
-    Kokkos::parallel_for(
+    Kokkos::parallel_for<usePolyOpt>(
         policy, KOKKOS_LAMBDA(const int i, const int j) {
           B(i, j) = SCALAR_VAL(0.2) * (A(i, j) + A(i, j - 1) + A(i, 1 + j) +
                                        A(1 + i, j) + A(i - 1, j));
         });
-    Kokkos::parallel_for(
+    Kokkos::parallel_for<usePolyOpt>(
         policy, KOKKOS_LAMBDA(const int i, const int j) {
           A(i, j) = SCALAR_VAL(0.2) * (B(i, j) + B(i, j - 1) + B(i, 1 + j) +
                                        B(1 + i, j) + B(i - 1, j));
         });
   }
 #else
-#pragma scop
   for (int t = 0; t < _PB_TSTEPS; t++) {
+#pragma scop
     for (int i = 1; i < _PB_N - 1; i++)
       for (int j = 1; j < _PB_N - 1; j++)
         B[i][j] = SCALAR_VAL(0.2) * (A[i][j] + A[i][j - 1] + A[i][1 + j] +
@@ -76,8 +76,8 @@ static void kernel_jacobi_2d(int tsteps, int n,
       for (int j = 1; j < _PB_N - 1; j++)
         A[i][j] = SCALAR_VAL(0.2) * (B[i][j] + B[i][j - 1] + B[i][1 + j] +
                                      B[1 + i][j] + B[i - 1][j]);
-  }
 #pragma endscop
+  }
 #endif
 }
 

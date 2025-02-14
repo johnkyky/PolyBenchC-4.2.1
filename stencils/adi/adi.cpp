@@ -79,7 +79,7 @@ static void kernel_adi(int tsteps, int n,
 
   for (int t = 1; t <= _PB_TSTEPS; t++) {
     // Column Sweep
-    Kokkos::parallel_for(
+    Kokkos::parallel_for<usePolyOpt>(
         policy_1D, KOKKOS_LAMBDA(const int i) {
           v(0, i) = SCALAR_VAL(1.0);
           p(i, 0) = SCALAR_VAL(0.0);
@@ -99,7 +99,7 @@ static void kernel_adi(int tsteps, int n,
         });
 
     // Row Sweep
-    Kokkos::parallel_for(
+    Kokkos::parallel_for<usePolyOpt>(
         policy_1D, KOKKOS_LAMBDA(const int i) {
           u(i, 0) = SCALAR_VAL(1.0);
           p(i, 0) = SCALAR_VAL(0.0);
@@ -119,8 +119,8 @@ static void kernel_adi(int tsteps, int n,
   }
 
 #else
-#pragma scop
   for (int t = 1; t <= _PB_TSTEPS; t++) {
+#pragma scop
     // Column Sweep
     for (int i = 1; i < _PB_N - 1; i++) {
       v[0][i] = SCALAR_VAL(1.0);
@@ -156,8 +156,8 @@ static void kernel_adi(int tsteps, int n,
         u[i][j] = p[i][j] * u[i][j + 1] + q[i][j];
       }
     }
-  }
 #pragma endscop
+  }
 #endif
 }
 
