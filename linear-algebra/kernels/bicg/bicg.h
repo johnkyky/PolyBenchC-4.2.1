@@ -10,9 +10,9 @@
 #ifndef _BICG_H
 # define _BICG_H
 
-/* Default to LARGE_DATASET. */
+/* Default to MEDIUM_DATASET. */
 # if !defined(MINI_DATASET) && !defined(SMALL_DATASET) && !defined(MEDIUM_DATASET) && !defined(LARGE_DATASET) && !defined(EXTRALARGE_DATASET)
-#  define LARGE_DATASET
+#  define MEDIUM_DATASET
 # endif
 
 # if !defined(M) && !defined(N)
