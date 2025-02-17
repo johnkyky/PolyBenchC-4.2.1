@@ -186,23 +186,22 @@ export OMP_PROC_BIND=spread
 export OMP_PLACES=threads
 
 # datamining
-# dataminings_dir=datamining
-# dataminings_kernel=("correlation" "covariance")
-# run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
-#
-# echo -e "\n"
+dataminings_dir=datamining
+dataminings_kernel=("correlation" "covariance")
+run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
+
+echo -e "\n"
 
 # medley
-# kernel_dir=medley
-# medley_kernel=("deriche" "floyd-warshall" "nussinov")
-# run_polybench ${kernel_dir} "${medley_kernel[@]}"
-#
-# echo -e "\n"
+kernel_dir=medley
+medley_kernel=("deriche" "floyd-warshall" "nussinov")
+run_polybench ${kernel_dir} "${medley_kernel[@]}"
+
+echo -e "\n"
 
 # stencils
 kernel_dir=stencils
-stencils_kernel=("adi")
-# stencils_kernel=("adi" "fdtd-2d" "heat-3d" "jacobi-1d" "jacobi-2d" "seidel-2d")
+stencils_kernel=("adi" "fdtd-2d" "heat-3d" "jacobi-1d" "jacobi-2d" "seidel-2d")
 run_polybench ${kernel_dir} "${stencils_kernel[@]}"
 
 echo -e "\n"

@@ -54,7 +54,7 @@ static void kernel_floyd_warshall(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, path, N,
 #if defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::MDRangePolicy<Kokkos::Serial, Kokkos::Rank<3>>(
       {0, 0, 0}, {n, n, n});
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy, KOKKOS_LAMBDA(const int k, const int i, const int j) {
         path(i, j) = path(i, j) < path(i, k) + path(k, j)
                          ? path(i, j)

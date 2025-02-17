@@ -61,7 +61,7 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
   const auto policy_1D_2 = Kokkos::RangePolicy<>(0, m - 1);
   const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, m});
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_1D_1, KOKKOS_LAMBDA(const int j) {
         mean(j) = SCALAR_VAL(0.0);
         for (int i = 0; i < _PB_N; i++)
@@ -69,7 +69,7 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
         mean(j) /= float_n;
       });
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_1D_1, KOKKOS_LAMBDA(const int j) {
         stddev(j) = SCALAR_VAL(0.0);
         for (int i = 0; i < _PB_N; i++)
@@ -83,15 +83,15 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
       });
 
   /* Center and reduce the column vectors. */
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
         data(i, j) -= mean(j);
         data(i, j) /= SQRT_FUN(float_n) * stddev(j);
       });
 
   /* Calculate the m * m correlation matrix. */
-  Kokkos::parallel_for(
-      policy_1D_1, KOKKOS_LAMBDA(const int i) {
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_1D_2, KOKKOS_LAMBDA(const int i) {
         corr(i, i) = SCALAR_VAL(1.0);
         for (int j = i + 1; j < _PB_M; j++) {
           corr(i, j) = SCALAR_VAL(0.0);

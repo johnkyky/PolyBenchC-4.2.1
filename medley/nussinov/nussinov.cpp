@@ -69,13 +69,12 @@ static void print_array(int n,
   Jin, based on algorithm by Nussinov, described in Allison Lake's senior
   thesis.
 */
-/// TODO: convert to kokkos kernel
 static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
                             ARRAY_2D_FUNC_PARAM(DATA_TYPE, table, N, N, n, n)) {
 #if defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy, KOKKOS_LAMBDA(const int i) {
         for (int j = _PB_N - i; j < _PB_N; j++) {
 

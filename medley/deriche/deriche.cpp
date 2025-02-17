@@ -84,7 +84,7 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {w, h});
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_1D_1, KOKKOS_LAMBDA(const int i) {
         DATA_TYPE ym1 = SCALAR_VAL(0.0);
         DATA_TYPE ym2 = SCALAR_VAL(0.0);
@@ -97,7 +97,7 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_1D_1, KOKKOS_LAMBDA(const int i) {
         DATA_TYPE yp1 = SCALAR_VAL(0.0);
         DATA_TYPE yp2 = SCALAR_VAL(0.0);
@@ -112,12 +112,12 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
         imgOut(i, j) = c1 * (y1(i, j) + y2(i, j));
       });
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_1D_2, KOKKOS_LAMBDA(const int j) {
         DATA_TYPE tm1 = SCALAR_VAL(0.0);
         DATA_TYPE ym1 = SCALAR_VAL(0.0);
@@ -130,7 +130,7 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_1D_2, KOKKOS_LAMBDA(const int j) {
         DATA_TYPE tp1 = SCALAR_VAL(0.0);
         DATA_TYPE tp2 = SCALAR_VAL(0.0);
@@ -145,7 +145,7 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
         imgOut(i, j) = c2 * (y1(i, j) + y2(i, j));
       });

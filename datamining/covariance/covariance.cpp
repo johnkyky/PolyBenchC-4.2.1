@@ -59,7 +59,7 @@ static void kernel_covariance(int m, int n, DATA_TYPE float_n,
   const auto policy_2D_2 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {m, m});
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_1D, KOKKOS_LAMBDA(const int j) {
         mean(j) = SCALAR_VAL(0.0);
         for (int i = 0; i < _PB_N; i++)
@@ -67,18 +67,28 @@ static void kernel_covariance(int m, int n, DATA_TYPE float_n,
         mean(j) /= float_n;
       });
 
-  Kokkos::parallel_for(
+  Kokkos::parallel_for<usePolyOpt>(
       policy_2D_1,
       KOKKOS_LAMBDA(const int i, const int j) { data(i, j) -= mean(j); });
 
-  Kokkos::parallel_for(
-      policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
-        cov(i, j) = SCALAR_VAL(0.0);
-        for (int k = 0; k < _PB_N; k++)
-          cov(i, j) += data(k, i) * data(k, j);
-        cov(i, j) /= (float_n - SCALAR_VAL(1.0));
-        cov(j, i) = cov(i, j);
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_1D, KOKKOS_LAMBDA(const int i) {
+        for (int j = i; j < _PB_M; j++) {
+          cov(i, j) = SCALAR_VAL(0.0);
+          for (int k = 0; k < _PB_N; k++)
+            cov(i, j) += data(k, i) * data(k, j);
+          cov(i, j) /= (float_n - SCALAR_VAL(1.0));
+          cov(j, i) = cov(i, j);
+        }
       });
+  // Kokkos::parallel_for(
+  //     policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
+  //       cov(i, j) = SCALAR_VAL(0.0);
+  //       for (int k = 0; k < _PB_N; k++)
+  //         cov(i, j) += data(k, i) * data(k, j);
+  //       cov(i, j) /= (float_n - SCALAR_VAL(1.0));
+  //       cov(j, i) = cov(i, j);
+  //     });
 #else
 #pragma scop
   for (int j = 0; j < _PB_M; j++) {
