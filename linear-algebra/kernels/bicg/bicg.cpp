@@ -63,6 +63,25 @@ static void kernel_bicg(int m, int n,
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, q, N, n),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, p, M, m),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n)) {
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::Serial>(0, m);
+  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_1D_1, KOKKOS_LAMBDA(const int i) { ARRAY_1D_ACCESS(s, i) = 0; });
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_1D_2, KOKKOS_LAMBDA(const int i) {
+        ARRAY_1D_ACCESS(q, i) = SCALAR_VAL(0.0);
+        for (int j = 0; j < m; j++) {
+          ARRAY_1D_ACCESS(s, j) =
+              ARRAY_1D_ACCESS(s, j) +
+              ARRAY_1D_ACCESS(r, i) * ARRAY_2D_ACCESS(A, i, j);
+          ARRAY_1D_ACCESS(q, i) =
+              ARRAY_1D_ACCESS(q, i) +
+              ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(p, j);
+        }
+      });
+#else
 #pragma scop
   for (int i = 0; i < _PB_M; i++)
     ARRAY_1D_ACCESS(s, i) = 0;
@@ -76,6 +95,7 @@ static void kernel_bicg(int m, int n,
     }
   }
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {

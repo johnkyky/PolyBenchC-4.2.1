@@ -67,6 +67,23 @@ static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
                        ARRAY_1D_FUNC_PARAM(DATA_TYPE, y_1, N, n),
                        ARRAY_1D_FUNC_PARAM(DATA_TYPE, y_2, N, n),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, n});
+
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
+        ARRAY_1D_ACCESS(x1, i) =
+            ARRAY_1D_ACCESS(x1, i) +
+            ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(y_1, j);
+      });
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
+        ARRAY_1D_ACCESS(x2, i) =
+            ARRAY_1D_ACCESS(x2, i) +
+            ARRAY_2D_ACCESS(A, j, i) * ARRAY_1D_ACCESS(y_2, j);
+      });
+#else
+#pragma scop
   for (int i = 0; i < _PB_N; i++)
     for (int j = 0; j < _PB_N; j++)
       ARRAY_1D_ACCESS(x1, i) =
@@ -78,10 +95,10 @@ static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
           ARRAY_1D_ACCESS(x2, i) +
           ARRAY_2D_ACCESS(A, j, i) * ARRAY_1D_ACCESS(y_2, j);
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {
-
   INITIALIZE;
 
   /* Retrieve problem size. */

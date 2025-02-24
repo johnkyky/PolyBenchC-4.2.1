@@ -56,8 +56,24 @@ static void print_array(int nr, int nq, int np,
    including the call and return. */
 void kernel_doitgen(int nr, int nq, int np,
                     ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, NR, NQ, NP, nr, nq, np),
+                    ARRAY_3D_FUNC_PARAM(DATA_TYPE, tmp, NR, NQ, NP, nr, nq, np),
                     ARRAY_2D_FUNC_PARAM(DATA_TYPE, C4, NP, NP, np, np),
                     ARRAY_1D_FUNC_PARAM(DATA_TYPE, sum, NP, np)) {
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy_2D =
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {nr, nq});
+
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_2D, KOKKOS_LAMBDA(const int r, const int q) {
+        for (int p = 0; p < np; p++) {
+          tmp(r, q, p) = 0.0;
+          for (int s = 0; s < np; s++)
+            tmp(r, q, p) += A(r, q, s) * ARRAY_2D_ACCESS(C4, s, p);
+        }
+        for (int p = 0; p < np; p++)
+          A(r, q, p) = tmp(r, q, p);
+      });
+#else
 #pragma scop
   for (int r = 0; r < _PB_NR; r++)
     for (int q = 0; q < _PB_NQ; q++) {
@@ -71,6 +87,7 @@ void kernel_doitgen(int nr, int nq, int np,
         ARRAY_3D_ACCESS(A, r, q, p) = ARRAY_1D_ACCESS(sum, p);
     }
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {
@@ -86,6 +103,7 @@ int main(int argc, char **argv) {
   POLYBENCH_3D_ARRAY_DECL(A, DATA_TYPE, NR, NQ, NP, nr, nq, np);
   POLYBENCH_1D_ARRAY_DECL(sum, DATA_TYPE, NP, np);
   POLYBENCH_2D_ARRAY_DECL(C4, DATA_TYPE, NP, NP, np, np);
+  POLYBENCH_3D_ARRAY_DECL(tmp, DATA_TYPE, NR, NQ, NP, nr, nq, np);
 
   /* Initialize array(s). */
   init_array(nr, nq, np, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(C4));
@@ -94,8 +112,8 @@ int main(int argc, char **argv) {
   polybench_start_instruments;
 
   /* Run kernel. */
-  kernel_doitgen(nr, nq, np, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(C4),
-                 POLYBENCH_ARRAY(sum));
+  kernel_doitgen(nr, nq, np, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(tmp),
+                 POLYBENCH_ARRAY(C4), POLYBENCH_ARRAY(sum));
 
   /* Stop and print timer. */
   polybench_stop_instruments;
@@ -109,6 +127,7 @@ int main(int argc, char **argv) {
   POLYBENCH_FREE_ARRAY(A);
   POLYBENCH_FREE_ARRAY(sum);
   POLYBENCH_FREE_ARRAY(C4);
+  POLYBENCH_FREE_ARRAY(tmp);
 
   FINALIZE;
 

@@ -43,12 +43,12 @@ function check_exit_code() {
 }
 
 function display_row_line() {
-  printf "%s\n" " ------------------------------------------------------------------------------------------------------------------------------------"
+  printf "%s\n" " ----------------------------------------------------------------------------------------------------------------------------------------------"
 }
 
 function display_row_title() {
   local kernel=$1
-  printf "%-2s %-20s %-30s %-30s %-30s %-15s %-2s\n" "|" ${kernel} "Time standard version" "Time kokkos version" "Time polly version" "Check output" "|"
+  printf "%-2s %-30s %-30s %-30s %-30s %-15s %-2s\n" "|" ${kernel} "Time standard version" "Time kokkos version" "Time polly version" "Check output" "|"
 }
 
 function display_row_data() {
@@ -58,7 +58,7 @@ function display_row_data() {
   local time_polly=$4
   local check_color=$5
   local check_char=$6
-  printf "%-2s %-20s %-30s %-30s %-30s ${check_color}%-15s${NC} %-2s\n" "|" ${kernel} ${time_str} ${time_kokkos} ${time_polly} ${check_char} "|"
+  printf "%-2s %-30s %-30s %-30s %-30s ${check_color}%-15s${NC} %-2s\n" "|" ${kernel} ${time_str} ${time_kokkos} ${time_polly} ${check_char} "|"
 }
 
 function measure_time() {
@@ -163,9 +163,9 @@ cmake -S $polybench_dir \
   -DPB_KOKKOS=ON \
   -DPB_KOKKOS_DIR=${kokkos_install_dir} \
   -DKokkos_ENABLE_SERIAL=ON \
-  \
+  -DKokkos_ENABLE_OPENMP=OFF \
   -DPB_DUMP_ARRAYS=ON \
-  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_kokkos.log # -DKokkos_ENABLE_OPENMP=OFF \
+  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_kokkos.log
 
 echo_replace "Generating build files for Polybench Kokkos version with polly\r"
 cmake -S $polybench_dir \
@@ -177,9 +177,8 @@ cmake -S $polybench_dir \
   -DPB_KOKKOS_DIR=${kokkos_install_dir} \
   -DPB_USE_POLLY=ON \
   -DKokkos_ENABLE_SERIAL=ON \
-  \
   -DPB_DUMP_ARRAYS=ON \
-  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_polly.log # -DKokkos_ENABLE_OPENMP=OFF \
+  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_polly.log
 
 # set variable to the benchmarks you want to running
 export OMP_PROC_BIND=spread
@@ -189,6 +188,18 @@ export OMP_PLACES=threads
 dataminings_dir=datamining
 dataminings_kernel=("correlation" "covariance")
 run_polybench ${dataminings_dir} "${dataminings_kernel[@]}"
+
+echo -e "\n"
+
+# linear-algebra kernels
+kernel_dir=linear-algebra/kernels
+linear_algebra_kernel=("2mm" "3mm" "atax" "bicg" "doitgen" "mvt")
+run_polybench ${kernel_dir} "${linear_algebra_kernel[@]}"
+
+# linear-algebra solvers
+kernel_dir=linear-algebra/solvers
+linear_algebra_kernel=("cholesky" "durbin" "gramschmidt" "lu" "ludcmp" "trisolv")
+run_polybench ${kernel_dir} "${linear_algebra_kernel[@]}"
 
 echo -e "\n"
 
@@ -204,31 +215,4 @@ kernel_dir=stencils
 stencils_kernel=("adi" "fdtd-2d" "heat-3d" "jacobi-1d" "jacobi-2d" "seidel-2d")
 run_polybench ${kernel_dir} "${stencils_kernel[@]}"
 
-echo -e "\n"
-
-# linear-algebra
-# linear-algebra/kernels/2mm/2mm.c
-# linear-algebra/kernels/3mm/3mm.c
-# linear-algebra/kernels/atax/atax.c
-# linear-algebra/kernels/bicg/bicg.c
-# linear-algebra/kernels/cholesky/cholesky.c
-# linear-algebra/kernels/doitgen/doitgen.c
-# linear-algebra/kernels/gemm/gemm.c
-# linear-algebra/kernels/gemver/gemver.c
-# linear-algebra/kernels/gesummv/gesummv.c
-# linear-algebra/kernels/mvt/mvt.c
-# linear-algebra/kernels/symm/symm.c
-# linear-algebra/kernels/syr2k/syr2k.c
-# linear-algebra/kernels/syrk/syrk.c
-# linear-algebra/kernels/trisolv/trisolv.c
-# linear-algebra/kernels/trmm/trmm.c
-
-# linear-algebra/solvers/durbin/durbin.c
-# linear-algebra/solvers/dynprog/dynprog.c
-# linear-algebra/solvers/gramschmidt/gramschmidt.c
-# linear-algebra/solvers/lu/lu.c
-# linear-algebra/solvers/ludcmp/ludcmp.c
-
-# medley
-# medley/floyd-warshall/floyd-warshall.c
-# medley/reg_detect/reg_detect.c
+# linear-algebra/blas

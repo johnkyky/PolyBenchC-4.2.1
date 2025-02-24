@@ -54,25 +54,36 @@ static void kernel_atax(int m, int n,
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, x, N, n),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, tmp, M, m)) {
+#if defined(POLYBENCH_KOKKOS)
+  const auto policy_1D_1 = Kokkos::RangePolicy<>(0, n);
+  const auto policy_1D_2 = Kokkos::RangePolicy<>(0, m);
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_1D_1, KOKKOS_LAMBDA(const int i) { ARRAY_1D_ACCESS(y, i) = 0; });
+
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_1D_2, KOKKOS_LAMBDA(const int i) {
+        DATA_TYPE tmp = SCALAR_VAL(0.0);
+        for (int j = 0; j < n; j++)
+          tmp += A(i, j) * x(j);
+        for (int j = 0; j < n; j++)
+          Kokkos::atomic_add(&y(j), A(i, j) * tmp);
+      });
+#else
 #pragma scop
   for (int i = 0; i < _PB_N; i++)
-    ARRAY_1D_ACCESS(y, i) = 0;
+    y[i] = 0;
   for (int i = 0; i < _PB_M; i++) {
-    ARRAY_1D_ACCESS(tmp, i) = SCALAR_VAL(0.0);
+    tmp[i] = SCALAR_VAL(0.0);
     for (int j = 0; j < _PB_N; j++)
-      ARRAY_1D_ACCESS(tmp, i) =
-          ARRAY_1D_ACCESS(tmp, i) +
-          ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(x, j);
+      tmp[i] = tmp[i] + A[i][j] * x[j];
     for (int j = 0; j < _PB_N; j++)
-      ARRAY_1D_ACCESS(y, j) =
-          ARRAY_1D_ACCESS(y, j) +
-          ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(tmp, i);
+      y[j] = y[j] + A[i][j] * tmp[i];
   }
 #pragma endscop
+#endif
 }
 
 int main(int argc, char **argv) {
-
   INITIALIZE;
 
   /* Retrieve problem size. */
