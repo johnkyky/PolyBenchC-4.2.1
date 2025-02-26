@@ -49,7 +49,7 @@ static void kernel_durbin(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   DATA_TYPE alpha;
   DATA_TYPE beta;
 
-  DATA_TYPE *alpha_ptr = &aplha;
+  DATA_TYPE *alpha_ptr = &alpha;
   DATA_TYPE *beta_ptr = &beta;
 
   y(0) = -r(0);
@@ -59,20 +59,20 @@ static void kernel_durbin(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(1, n);
   Kokkos::parallel_for<usePolyOpt>(
       policy_1D, KOKKOS_LAMBDA(const int k) {
-        *beta_ptr = (1 - alpha_ptr * alpha_ptr) * beta_ptr;
-        sum = SCALAR_VAL(0.0);
+        *beta_ptr = (1 - *alpha_ptr * *alpha_ptr) * *beta_ptr;
+        DATA_TYPE sum = SCALAR_VAL(0.0);
         for (int i = 0; i < k; i++) {
           sum += r(k - i - 1) * y(i);
         }
-        alpha_ptr = -(r[k] + sum) / beta_ptr;
+        *alpha_ptr = -(r[k] + sum) / *beta_ptr;
 
         for (int i = 0; i < k; i++) {
-          z[i] = y[i] + alpha_ptr * y[k - i - 1];
+          z[i] = y[i] + *alpha_ptr * y[k - i - 1];
         }
         for (int i = 0; i < k; i++) {
           y[i] = z[i];
         }
-        y[k] = alpha_ptr;
+        y[k] = *alpha_ptr;
       });
 #elif defined(POLYBENCH_KOKKOS)
   POLYBENCH_1D_ARRAY_DECL(z, DATA_TYPE, N, n);
