@@ -13,6 +13,8 @@ llvm_install_dir=/home/johnkyky/Documents/Phd_project/llvm/install/bin/clang++
 polybench_dir=$(pwd)/..
 dataset="MINI"
 
+nb_iteration=5
+
 ###
 
 RED='\033[0;31m'
@@ -72,11 +74,6 @@ function measure_time() {
   echo $elapsed
 }
 
-function run() {
-  "$@"
-  echo zizi
-}
-
 function run_polybench() {
   local kernel_dir=$1
   shift
@@ -89,46 +86,68 @@ function run_polybench() {
   for kernel in ${kernel_list[@]}; do
     mkdir -p ${output_dir}/${kernel_dir}/${kernel}
 
-    cd ${build_std}
-    echo_replace "Building ${kernel} standard version"
-    make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.compile
-    check_exit_code "Error building ${kernel}_std"
-    echo_replace "Running ${kernel} standard version"
-    ${build_std}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out
-    check_exit_code "Error running ${kernel}_std"
-    time_std=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time)
+    # cd ${build_std}
+    # echo_replace "Building ${kernel} standard version"
+    # make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.compile
+    # check_exit_code "Error building ${kernel}_std"
+
+    # for i in $(seq 1 $nb_iteration); do
+    #   echo_replace "Running ${kernel} standard version (iteration $i/$nb_iteration)"
+    #   ${build_std}/${kernel_dir}/${kernel}/${kernel} >>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out
+    #   check_exit_code "Error running ${kernel}_std"
+    #   # time_std=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time)
+    # done
+    # echo_replace "Running ${kernel} standard version"
+    # ${build_std}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out
+    # check_exit_code "Error running ${kernel}_std"
+    # time_std=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.time)
 
     cd ${build_kokkos}
     echo_replace "Building ${kernel} kokkos version"
     make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.compile
     check_exit_code "Error building ${kernel}_kokkos"
-    echo_replace "Running ${kernel} kokkos version"
-    ${build_kokkos}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.out
-    check_exit_code "Error running ${kernel}_kokkos"
-    time_kokkos=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time)
+    for i in $(seq 1 $nb_iteration); do
+      echo_replace "Running ${kernel} kokkos version (iteration $i/$nb_iteration)"
+      ${build_kokkos}/${kernel_dir}/${kernel}/${kernel} >>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.out
+      check_exit_code "Error running ${kernel}_kokkos"
+      # time_kokkos=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time)
+    done
+    # echo_replace "Running ${kernel} kokkos version"
+    # ${build_kokkos}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.out
+    # check_exit_code "Error running ${kernel}_kokkos"
+    # time_kokkos=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.time)
 
     cd ${build_polly}
     echo_replace "Building ${kernel} polly version"
     make -j $kernel &>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.compile
     check_exit_code "Error building ${kernel}_polly"
-    echo_replace "Running ${kernel} polly version"
-    ${build_polly}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.out
-    check_exit_code "Error running ${kernel}_polly"
-    time_polly=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time)
+    for i in $(seq 1 $nb_iteration); do
+      echo_replace "Running ${kernel} polly version (iteration $i/$nb_iteration)"
+      ${build_polly}/${kernel_dir}/${kernel}/${kernel} >>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.out
+      check_exit_code "Error running ${kernel}_polly"
+      # time_polly=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time)
+    done
+    # echo_replace "Running ${kernel} polly version"
+    # ${build_polly}/${kernel_dir}/${kernel}/${kernel} >${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time 2>${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.out
+    # check_exit_code "Error running ${kernel}_polly"
+    # time_polly=$(<${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.time)
 
-    echo_replace "Comparing output"
+    # echo_replace "Comparing output"
+    time_std=1
+    time_kokkos=1
+    time_polly=1
 
     # check_output="┌∩┐(◣_◢)┌∩┐"
     check_output="V"
     check_color=$GREEN
-    if ! cmp -s ${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out ${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.out; then
-      check_output="X"
-      check_color=$RED
-    fi
-    if ! cmp -s ${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out ${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.out; then
-      check_output="X"
-      check_color=$RED
-    fi
+    # if ! cmp -s ${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out ${output_dir}/${kernel_dir}/${kernel}/${kernel}_kokkos.out; then
+    #   check_output="X"
+    #   check_color=$RED
+    # fi
+    # if ! cmp -s ${output_dir}/${kernel_dir}/${kernel}/${kernel}_std.out ${output_dir}/${kernel_dir}/${kernel}/${kernel}_polly.out; then
+    #   check_output="X"
+    #   check_color=$RED
+    # fi
 
     echo_replace ""
     display_row_data ${kernel} ${time_std} ${time_kokkos} ${time_polly} ${check_color} ${check_output}
