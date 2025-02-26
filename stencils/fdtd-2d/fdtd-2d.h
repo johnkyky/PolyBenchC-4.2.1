@@ -20,31 +20,31 @@
 #if !defined(TMAX) && !defined(NX) && !defined(NY)
 /* Define sample dataset sizes. */
 #ifdef MINI_DATASET
-#define TMAX 50
+#define TMAX 10
 #define NX 40
 #define NY 60
 #endif
 
 #ifdef SMALL_DATASET
-#define TMAX 100
+#define TMAX 50
 #define NX 400
 #define NY 600
 #endif
 
 #ifdef MEDIUM_DATASET
-#define TMAX 250
+#define TMAX 100
 #define NX 900
 #define NY 1100
 #endif
 
 #ifdef LARGE_DATASET
-#define TMAX 500
+#define TMAX 250
 #define NX 9000
 #define NY 11000
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define TMAX 1000
+#define TMAX 500
 #define NX 19000
 #define NY 21000
 #endif
