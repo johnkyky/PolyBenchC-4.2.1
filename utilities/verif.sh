@@ -148,7 +148,7 @@ mkdir -p $output_dir
 echo_replace "Generating build files for Polybench standard version\r"
 cmake -S $polybench_dir \
   -B $build_std \
-  -DCMAKE_CXX_COMPILER="/home/johnkyky/Documents/Phd_project/llvm/install/bin/clang++" \
+  -DCMAKE_CXX_COMPILER=${llvm_install_dir} \
   -DCMAKE_BUILD_TYPE=Release \
   -DPB_CYCLE_MONITORING=ON \
   -DPB_DUMP_ARRAYS=ON \
