@@ -20,33 +20,33 @@
 #if !defined(NQ) && !defined(NR) && !defined(NP)
 /* Define sample dataset sizes. */
 #ifdef MINI_DATASET
-#define NQ 8
-#define NR 10
-#define NP 12
+#define NQ 16
+#define NR 18
+#define NP 20
 #endif
 
 #ifdef SMALL_DATASET
-#define NQ 20
-#define NR 25
-#define NP 30
+#define NQ 32
+#define NR 40
+#define NP 48
 #endif
 
 #ifdef MEDIUM_DATASET
-#define NQ 40
-#define NR 50
-#define NP 60
+#define NQ 128
+#define NR 136
+#define NP 144
 #endif
 
 #ifdef LARGE_DATASET
-#define NQ 140
-#define NR 150
-#define NP 160
+#define NQ 256
+#define NR 264
+#define NP 272
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define NQ 220
-#define NR 250
-#define NP 270
+#define NQ 512
+#define NR 520
+#define NP 528
 #endif
 
 #endif /* !(NQ NR NP) */

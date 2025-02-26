@@ -20,28 +20,28 @@
 #if !defined(M) && !defined(N)
 /* Define sample dataset sizes. */
 #ifdef MINI_DATASET
-#define M 38
-#define N 42
+#define M 32
+#define N 48
 #endif
 
 #ifdef SMALL_DATASET
-#define M 116
-#define N 124
+#define M 128
+#define N 136
 #endif
 
 #ifdef MEDIUM_DATASET
-#define M 390
-#define N 410
+#define M 512
+#define N 528
 #endif
 
 #ifdef LARGE_DATASET
-#define M 1900
-#define N 2100
+#define M 1024
+#define N 1048
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define M 1800
-#define N 2200
+#define M 2048
+#define N 2080
 #endif
 
 #endif /* !(M N) */
