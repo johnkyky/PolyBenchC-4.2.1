@@ -24,11 +24,11 @@
 #endif
 
 #ifdef SMALL_DATASET
-#define N 128
+#define N 256
 #endif
 
 #ifdef MEDIUM_DATASET
-#define N 512
+#define N 1024
 #endif
 
 #ifdef LARGE_DATASET
