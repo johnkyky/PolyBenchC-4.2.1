@@ -14,6 +14,7 @@ polybench_dir=$(pwd)/..
 dataset="MINI"
 
 nb_iteration=5
+print_output=OFF
 
 ###
 
@@ -170,7 +171,7 @@ cmake -S $polybench_dir \
   -DCMAKE_CXX_COMPILER=${llvm_install_dir} \
   -DCMAKE_BUILD_TYPE=Release \
   -DPB_CYCLE_MONITORING=ON \
-  -DPB_DUMP_ARRAYS=ON \
+  -DPB_DUMP_ARRAYS=${print_output} \
   -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_std.log
 
 echo_replace "Generating build files for Polybench Kokkos version\r"
@@ -183,7 +184,7 @@ cmake -S $polybench_dir \
   -DPB_KOKKOS_DIR=${kokkos_install_dir} \
   -DKokkos_ENABLE_SERIAL=ON \
   -DKokkos_ENABLE_OPENMP=OFF \
-  -DPB_DUMP_ARRAYS=ON \
+  -DPB_DUMP_ARRAYS=${print_output} \
   -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_kokkos.log
 
 echo_replace "Generating build files for Polybench Kokkos version with polly\r"
@@ -196,7 +197,7 @@ cmake -S $polybench_dir \
   -DPB_KOKKOS_DIR=${kokkos_install_dir} \
   -DPB_USE_POLLY=ON \
   -DKokkos_ENABLE_SERIAL=ON \
-  -DPB_DUMP_ARRAYS=ON \
+  -DPB_DUMP_ARRAYS=${print_output} \
   -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_polly.log
 
 # set variable to the benchmarks you want to running
