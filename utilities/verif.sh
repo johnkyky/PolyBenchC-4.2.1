@@ -195,8 +195,15 @@ function run_polybench() {
 
 rm -fr ${process_dir}
 
+verif_str=""
+if [[ ${verif} -gt 0 ]]; then
+  verif_str="verification"
+else
+  verif_str="benchmarking (nb_iteration=${nb_iteration})"
+fi
+
 echo -e "Running with \n" \
-  "verif: " ${verif} "\n" \
+  "verif: " ${verif_str} "\n" \
   "print_output: " ${print_output} "\n" \
   "dataset: " ${dataset} "\n" \
   "process_dir: " ${process_dir} "\n" \
