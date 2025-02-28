@@ -7,7 +7,8 @@ build_kokkos=${process_dir}/build_kokkos
 build_polly=${process_dir}/build_polly
 output_dir=${process_dir}/output
 
-kokkos_install_dir=/home/johnkyky/Documents/Phd_project/kokkos/install/lib64/cmake/Kokkos
+kokkos_install_dir_for_kokkos=/home/johnkyky/Documents/Phd_project/kokkos/install/lib64/cmake/Kokkos
+kokkos_install_dir_for_polly=/home/johnkyky/Documents/Phd_project/kokkos/install/lib64/cmake/Kokkos
 llvm_install_dir=/home/johnkyky/Documents/Phd_project/llvm/install/bin/clang++
 
 polybench_dir=$(pwd)/..
@@ -200,7 +201,8 @@ echo -e "Running with \n" \
   "dataset: " ${dataset} "\n" \
   "process_dir: " ${process_dir} "\n" \
   "llvm_install_dir: " ${llvm_install_dir} "\n" \
-  "kokkos_install_dir: " ${kokkos_install_dir} "\n"
+  "kokkos_install_dir for kokkos: " ${kokkos_install_dir_for_kokkos} "\n" \
+  "kokkos_install_dir for polly: " ${kokkos_install_dir_for_polly} "\n"
 
 echo_replace "Creating build directories"
 mkdir -p $process_dir
@@ -225,7 +227,7 @@ cmake -S $polybench_dir \
   -DCMAKE_BUILD_TYPE=Release \
   -DPB_CYCLE_MONITORING=ON \
   -DPB_KOKKOS=ON \
-  -DPB_KOKKOS_DIR=${kokkos_install_dir} \
+  -DPB_KOKKOS_DIR=${kokkos_install_dir_for_kokkos} \
   -DKokkos_ENABLE_SERIAL=ON \
   -DKokkos_ENABLE_OPENMP=OFF \
   -DPB_DUMP_ARRAYS=${print_output} \
@@ -238,7 +240,7 @@ cmake -S $polybench_dir \
   -DCMAKE_BUILD_TYPE=Release \
   -DPB_CYCLE_MONITORING=ON \
   -DPB_KOKKOS=ON \
-  -DPB_KOKKOS_DIR=${kokkos_install_dir} \
+  -DPB_KOKKOS_DIR=${kokkos_install_dir_for_polly} \
   -DPB_USE_POLLY=ON \
   -DKokkos_ENABLE_SERIAL=ON \
   -DPB_DUMP_ARRAYS=${print_output} \
