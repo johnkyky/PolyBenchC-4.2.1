@@ -68,17 +68,13 @@ static void kernel_bicg(int m, int n,
   const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int i) { ARRAY_1D_ACCESS(s, i) = 0; });
+      policy_1D_1, KOKKOS_LAMBDA(const int i) { s(i) = 0; });
   Kokkos::parallel_for<usePolyOpt>(
       policy_1D_2, KOKKOS_LAMBDA(const int i) {
-        ARRAY_1D_ACCESS(q, i) = SCALAR_VAL(0.0);
+        q(i) = SCALAR_VAL(0.0);
         for (int j = 0; j < m; j++) {
-          ARRAY_1D_ACCESS(s, j) =
-              ARRAY_1D_ACCESS(s, j) +
-              ARRAY_1D_ACCESS(r, i) * ARRAY_2D_ACCESS(A, i, j);
-          ARRAY_1D_ACCESS(q, i) =
-              ARRAY_1D_ACCESS(q, i) +
-              ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(p, j);
+          s(j) = s(j) + r(i) * A(i, j);
+          q(i) = q(i) + A(i, j) * p(j);
         }
       });
 #else
