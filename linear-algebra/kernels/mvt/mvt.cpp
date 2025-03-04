@@ -72,15 +72,11 @@ static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
 
   Kokkos::parallel_for<usePolyOpt>(
       policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
-        ARRAY_1D_ACCESS(x1, i) =
-            ARRAY_1D_ACCESS(x1, i) +
-            ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(y_1, j);
+        x1(i) = x1(i) + A(i, j) * y_1(j);
       });
   Kokkos::parallel_for<usePolyOpt>(
       policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
-        ARRAY_1D_ACCESS(x2, i) =
-            ARRAY_1D_ACCESS(x2, i) +
-            ARRAY_2D_ACCESS(A, j, i) * ARRAY_1D_ACCESS(y_2, j);
+        x2(i) = x2(i) + A(j, i) * y_2(j);
       });
 #else
 #pragma scop
