@@ -68,7 +68,8 @@ static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
                        ARRAY_1D_FUNC_PARAM(DATA_TYPE, y_2, N, n),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 #if defined(POLYBENCH_KOKKOS)
-  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, n});
+  const auto policy_2D =
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, n}, {32, 32});
 
   Kokkos::parallel_for<usePolyOpt>(
       policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
