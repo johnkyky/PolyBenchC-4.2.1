@@ -84,10 +84,8 @@ static void kernel_bicg(int m, int n,
   for (int i = 0; i < _PB_N; i++) {
     ARRAY_1D_ACCESS(q, i) = SCALAR_VAL(0.0);
     for (int j = 0; j < _PB_M; j++) {
-      ARRAY_1D_ACCESS(s, j) = ARRAY_1D_ACCESS(s, j) +
-                              ARRAY_1D_ACCESS(r, i) * ARRAY_2D_ACCESS(A, i, j);
-      ARRAY_1D_ACCESS(q, i) = ARRAY_1D_ACCESS(q, i) +
-                              ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(p, j);
+      s[j] = s[j] + r[i] * A[i][j];
+      q[i] = q[i] + A[i][j] * p[j];
     }
   }
 #pragma endscop
