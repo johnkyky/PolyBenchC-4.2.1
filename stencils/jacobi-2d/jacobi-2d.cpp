@@ -52,7 +52,7 @@ static void kernel_jacobi_2d(int tsteps, int n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, N, N, n, n)) {
 #if defined(POLYBENCH_KOKKOS)
   const auto policy =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 1}, {n - 1, n - 1});
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 1}, {n - 1, n - 1}, {32, 32});
   for (int t = 0; t < _PB_TSTEPS; t++) {
     Kokkos::parallel_for<usePolyOpt>(
         policy, KOKKOS_LAMBDA(const int i, const int j) {
