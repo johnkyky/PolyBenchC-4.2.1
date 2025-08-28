@@ -49,22 +49,22 @@ static void print_array(int n,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_floyd_warshall(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, path, N,
-                                                             N, n, n)) {
+static void kernel_floyd_warshall(size_t n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, path,
+                                                                N, N, n, n)) {
 #if defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::MDRangePolicy<Kokkos::Serial, Kokkos::Rank<3>>(
       {0, 0, 0}, {n, n, n});
   Kokkos::parallel_for<usePolyOpt>(
-      policy, KOKKOS_LAMBDA(const int k, const int i, const int j) {
+      policy, KOKKOS_LAMBDA(const size_t k, const size_t i, const size_t j) {
         path(i, j) = path(i, j) < path(i, k) + path(k, j)
                          ? path(i, j)
                          : path(i, k) + path(k, j);
       });
 #else
 #pragma scop
-  for (int k = 0; k < _PB_N; k++) {
-    for (int i = 0; i < _PB_N; i++)
-      for (int j = 0; j < _PB_N; j++)
+  for (size_t k = 0; k < n; k++) {
+    for (size_t i = 0; i < n; i++)
+      for (size_t j = 0; j < n; j++)
         path[i][j] = path[i][j] < path[i][k] + path[k][j]
                          ? path[i][j]
                          : path[i][k] + path[k][j];

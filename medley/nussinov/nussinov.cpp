@@ -69,14 +69,14 @@ static void print_array(int n,
   Jin, based on algorithm by Nussinov, described in Allison Lake's senior
   thesis.
 */
-static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
+static void kernel_nussinov(size_t n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
                             ARRAY_2D_FUNC_PARAM(DATA_TYPE, table, N, N, n, n)) {
 #if defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy, KOKKOS_LAMBDA(const int i) {
-        for (int j = _PB_N - i; j < _PB_N; j++) {
+      policy, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = n - i; j < n; j++) {
 
           if (j - 1 >= 0) {
             table(i, j) = max_score(table(i, j), table(i, j - 1));
@@ -87,26 +87,26 @@ static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
 
           if (j - 1 >= 0 && i > 0) {
             /* don't allow adjacent elements to bond */
-            if (_PB_N - i < j) {
+            if (n - i < j) {
               table(i, j) =
                   max_score(table(i, j), table(i - 1, j - 1) +
-                                             match(seq(_PB_N - i - 1), seq(j)));
+                                             match(seq(n - i - 1), seq(j)));
             } else {
               table(i, j) = max_score(table(i, j), table(i - 1, j - 1));
             }
           }
 
-          for (int k = _PB_N - i; k < j; k++) {
+          for (size_t k = n - i; k < j; k++) {
             table(i, j) =
-                max_score(table(i, j), table(i, k) + table(_PB_N - k - 1, j));
+                max_score(table(i, j), table(i, k) + table(n - k - 1, j));
           }
         }
       });
 
 #else
 #pragma scop
-  for (int i = 0; i < _PB_N; i++) {
-    for (int j = _PB_N - i; j < _PB_N; j++) {
+  for (size_t i = 0; i < n; i++) {
+    for (size_t j = n - i; j < n; j++) {
 
       if (j - 1 >= 0) {
         table[i][j] = max_score(table[i][j], table[i][j - 1]);
@@ -117,18 +117,16 @@ static void kernel_nussinov(int n, ARRAY_1D_FUNC_PARAM(base, seq, N, n),
 
       if (j - 1 >= 0 && i > 0) {
         /* don't allow adjacent elements to bond */
-        if (_PB_N - i < j) {
-          table[i][j] =
-              max_score(table[i][j], table[i - 1][j - 1] +
-                                         match(seq[_PB_N - i - 1], seq[j]));
+        if (n - i < j) {
+          table[i][j] = max_score(
+              table[i][j], table[i - 1][j - 1] + match(seq[n - i - 1], seq[j]));
         } else {
           table[i][j] = max_score(table[i][j], table[i - 1][j - 1]);
         }
       }
 
-      for (int k = _PB_N - i; k < j; k++) {
-        table[i][j] =
-            max_score(table[i][j], table[i][k] + table[_PB_N - k - 1][j]);
+      for (size_t k = n - i; k < j; k++) {
+        table[i][j] = max_score(table[i][j], table[i][k] + table[n - k - 1][j]);
       }
     }
   }

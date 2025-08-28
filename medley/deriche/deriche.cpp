@@ -52,7 +52,7 @@ static void print_array(int w, int h,
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
 /* Original code provided by Gael Deest */
-static void kernel_deriche(int w, int h, DATA_TYPE alpha,
+static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, imgIn, W, H, w, h),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, imgOut, W, H, w, h),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, y1, W, H, w, h),
@@ -85,11 +85,11 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {w, h});
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int i) {
+      policy_1D_1, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE ym1 = SCALAR_VAL(0.0);
         DATA_TYPE ym2 = SCALAR_VAL(0.0);
         DATA_TYPE xm1 = SCALAR_VAL(0.0);
-        for (int j = 0; j < _PB_H; j++) {
+        for (size_t j = 0; j < h; j++) {
           y1(i, j) = a1 * imgIn(i, j) + a2 * xm1 + b1 * ym1 + b2 * ym2;
           xm1 = imgIn(i, j);
           ym2 = ym1;
@@ -98,12 +98,12 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int i) {
+      policy_1D_1, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE yp1 = SCALAR_VAL(0.0);
         DATA_TYPE yp2 = SCALAR_VAL(0.0);
         DATA_TYPE xp1 = SCALAR_VAL(0.0);
         DATA_TYPE xp2 = SCALAR_VAL(0.0);
-        for (int j = _PB_H - 1; j >= 0; j--) {
+        for (size_t j = h - 1; j >= 0; j--) {
           y2(i, j) = a3 * xp1 + a4 * xp2 + b1 * yp1 + b2 * yp2;
           xp2 = xp1;
           xp1 = imgIn(i, j);
@@ -113,16 +113,16 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
+      policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         imgOut(i, j) = c1 * (y1(i, j) + y2(i, j));
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_2, KOKKOS_LAMBDA(const int j) {
+      policy_1D_2, KOKKOS_LAMBDA(const size_t j) {
         DATA_TYPE tm1 = SCALAR_VAL(0.0);
         DATA_TYPE ym1 = SCALAR_VAL(0.0);
         DATA_TYPE ym2 = SCALAR_VAL(0.0);
-        for (int i = 0; i < _PB_W; i++) {
+        for (size_t i = 0; i < w; i++) {
           y1(i, j) = a5 * imgOut(i, j) + a6 * tm1 + b1 * ym1 + b2 * ym2;
           tm1 = imgOut(i, j);
           ym2 = ym1;
@@ -131,12 +131,12 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_2, KOKKOS_LAMBDA(const int j) {
+      policy_1D_2, KOKKOS_LAMBDA(const size_t j) {
         DATA_TYPE tp1 = SCALAR_VAL(0.0);
         DATA_TYPE tp2 = SCALAR_VAL(0.0);
         DATA_TYPE yp1 = SCALAR_VAL(0.0);
         DATA_TYPE yp2 = SCALAR_VAL(0.0);
-        for (int i = _PB_W - 1; i >= 0; i--) {
+        for (size_t i = w - 1; i >= 0; i--) {
           y2(i, j) = a7 * tp1 + a8 * tp2 + b1 * yp1 + b2 * yp2;
           tp2 = tp1;
           tp1 = imgOut(i, j);
@@ -146,7 +146,7 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
+      policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         imgOut(i, j) = c2 * (y1(i, j) + y2(i, j));
       });
 #else
@@ -163,11 +163,11 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
   b2 = -EXP_FUN(SCALAR_VAL(-2.0) * alpha);
   c1 = c2 = 1;
 
-  for (int i = 0; i < _PB_W; i++) {
+  for (size_t i = 0; i < w; i++) {
     ym1 = SCALAR_VAL(0.0);
     ym2 = SCALAR_VAL(0.0);
     xm1 = SCALAR_VAL(0.0);
-    for (int j = 0; j < _PB_H; j++) {
+    for (size_t j = 0; j < h; j++) {
       y1[i][j] = a1 * imgIn[i][j] + a2 * xm1 + b1 * ym1 + b2 * ym2;
       xm1 = imgIn[i][j];
       ym2 = ym1;
@@ -175,12 +175,12 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
     }
   }
 
-  for (int i = 0; i < _PB_W; i++) {
+  for (size_t i = 0; i < w; i++) {
     yp1 = SCALAR_VAL(0.0);
     yp2 = SCALAR_VAL(0.0);
     xp1 = SCALAR_VAL(0.0);
     xp2 = SCALAR_VAL(0.0);
-    for (int j = _PB_H - 1; j >= 0; j--) {
+    for (size_t j = h - 1; j >= 0; j--) {
       y2[i][j] = a3 * xp1 + a4 * xp2 + b1 * yp1 + b2 * yp2;
       xp2 = xp1;
       xp1 = imgIn[i][j];
@@ -189,16 +189,16 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
     }
   }
 
-  for (int i = 0; i < _PB_W; i++)
-    for (int j = 0; j < _PB_H; j++) {
+  for (size_t i = 0; i < w; i++)
+    for (size_t j = 0; j < h; j++) {
       imgOut[i][j] = c1 * (y1[i][j] + y2[i][j]);
     }
 
-  for (int j = 0; j < _PB_H; j++) {
+  for (size_t j = 0; j < h; j++) {
     tm1 = SCALAR_VAL(0.0);
     ym1 = SCALAR_VAL(0.0);
     ym2 = SCALAR_VAL(0.0);
-    for (int i = 0; i < _PB_W; i++) {
+    for (size_t i = 0; i < w; i++) {
       y1[i][j] = a5 * imgOut[i][j] + a6 * tm1 + b1 * ym1 + b2 * ym2;
       tm1 = imgOut[i][j];
       ym2 = ym1;
@@ -206,12 +206,12 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
     }
   }
 
-  for (int j = 0; j < _PB_H; j++) {
+  for (size_t j = 0; j < h; j++) {
     tp1 = SCALAR_VAL(0.0);
     tp2 = SCALAR_VAL(0.0);
     yp1 = SCALAR_VAL(0.0);
     yp2 = SCALAR_VAL(0.0);
-    for (int i = _PB_W - 1; i >= 0; i--) {
+    for (size_t i = w - 1; i >= 0; i--) {
       y2[i][j] = a7 * tp1 + a8 * tp2 + b1 * yp1 + b2 * yp2;
       tp2 = tp1;
       tp1 = imgOut[i][j];
@@ -220,8 +220,8 @@ static void kernel_deriche(int w, int h, DATA_TYPE alpha,
     }
   }
 
-  for (int i = 0; i < _PB_W; i++)
-    for (int j = 0; j < _PB_H; j++)
+  for (size_t i = 0; i < w; i++)
+    for (size_t j = 0; j < h; j++)
       imgOut[i][j] = c2 * (y1[i][j] + y2[i][j]);
 #pragma endscop
 #endif
