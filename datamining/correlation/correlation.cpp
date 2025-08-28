@@ -48,7 +48,7 @@ static void print_array(int m,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_correlation(int m, int n, DATA_TYPE float_n,
+static void kernel_correlation(size_t m, size_t n, DATA_TYPE float_n,
                                ARRAY_2D_FUNC_PARAM(DATA_TYPE, data, N, M, n, m),
                                ARRAY_2D_FUNC_PARAM(DATA_TYPE, corr, M, M, m, m),
                                ARRAY_1D_FUNC_PARAM(DATA_TYPE, mean, M, m),
@@ -62,17 +62,17 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
   const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, m});
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int j) {
+      policy_1D_1, KOKKOS_LAMBDA(const size_t j) {
         mean(j) = SCALAR_VAL(0.0);
-        for (int i = 0; i < _PB_N; i++)
+        for (size_t i = 0; i < n; i++)
           mean(j) += data(i, j);
         mean(j) /= float_n;
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int j) {
+      policy_1D_1, KOKKOS_LAMBDA(const size_t j) {
         stddev(j) = SCALAR_VAL(0.0);
-        for (int i = 0; i < _PB_N; i++)
+        for (size_t i = 0; i < n; i++)
           stddev(j) += (data(i, j) - mean(j)) * (data(i, j) - mean(j));
         stddev(j) /= float_n;
         stddev(j) = SQRT_FUN(stddev(j));
@@ -84,35 +84,35 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
 
   /* Center and reduce the column vectors. */
   Kokkos::parallel_for<usePolyOpt>(
-      policy_2D, KOKKOS_LAMBDA(const int i, const int j) {
+      policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         data(i, j) -= mean(j);
         data(i, j) /= SQRT_FUN(float_n) * stddev(j);
       });
 
   /* Calculate the m * m correlation matrix. */
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_2, KOKKOS_LAMBDA(const int i) {
+      policy_1D_2, KOKKOS_LAMBDA(const size_t i) {
         corr(i, i) = SCALAR_VAL(1.0);
-        for (int j = i + 1; j < _PB_M; j++) {
+        for (size_t j = i + 1; j < m; j++) {
           corr(i, j) = SCALAR_VAL(0.0);
-          for (int k = 0; k < _PB_N; k++)
+          for (size_t k = 0; k < n; k++)
             corr(i, j) += (data(k, i) * data(k, j));
           corr(j, i) = corr(i, j);
         }
       });
-  corr(_PB_M - 1, _PB_M - 1) = SCALAR_VAL(1.0);
+  corr(m - 1, m - 1) = SCALAR_VAL(1.0);
 #else
 #pragma scop
-  for (int j = 0; j < _PB_M; j++) {
+  for (size_t j = 0; j < m; j++) {
     mean[j] = SCALAR_VAL(0.0);
-    for (int i = 0; i < _PB_N; i++)
+    for (size_t i = 0; i < n; i++)
       mean[j] += data[i][j];
     mean[j] /= float_n;
   }
 
-  for (int j = 0; j < _PB_M; j++) {
+  for (size_t j = 0; j < m; j++) {
     stddev[j] = SCALAR_VAL(0.0);
-    for (int i = 0; i < _PB_N; i++)
+    for (size_t i = 0; i < n; i++)
       stddev[j] += (data[i][j] - mean[j]) * (data[i][j] - mean[j]);
     stddev[j] /= float_n;
     stddev[j] = SQRT_FUN(stddev[j]);
@@ -123,23 +123,23 @@ static void kernel_correlation(int m, int n, DATA_TYPE float_n,
   }
 
   /* Center and reduce the column vectors. */
-  for (int i = 0; i < _PB_N; i++)
-    for (int j = 0; j < _PB_M; j++) {
+  for (size_t i = 0; i < n; i++)
+    for (size_t j = 0; j < m; j++) {
       data[i][j] -= mean[j];
       data[i][j] /= SQRT_FUN(float_n) * stddev[j];
     }
 
   /* Calculate the m * m correlation matrix. */
-  for (int i = 0; i < _PB_M - 1; i++) {
+  for (size_t i = 0; i < m - 1; i++) {
     corr[i][i] = SCALAR_VAL(1.0);
-    for (int j = i + 1; j < _PB_M; j++) {
+    for (size_t j = i + 1; j < m; j++) {
       corr[i][j] = SCALAR_VAL(0.0);
-      for (int k = 0; k < _PB_N; k++)
+      for (size_t k = 0; k < n; k++)
         corr[i][j] += (data[k][i] * data[k][j]);
       corr[j][i] = corr[i][j];
     }
   }
-  corr[_PB_M - 1][_PB_M - 1] = SCALAR_VAL(1.0);
+  corr[m - 1][m - 1] = SCALAR_VAL(1.0);
 #pragma endscop
 #endif
 }

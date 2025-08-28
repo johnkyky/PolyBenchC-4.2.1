@@ -48,7 +48,7 @@ static void print_array(int m,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_covariance(int m, int n, DATA_TYPE float_n,
+static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
                               ARRAY_2D_FUNC_PARAM(DATA_TYPE, data, N, M, n, m),
                               ARRAY_2D_FUNC_PARAM(DATA_TYPE, cov, M, M, m, m),
                               ARRAY_1D_FUNC_PARAM(DATA_TYPE, mean, M, m)) {
@@ -60,52 +60,52 @@ static void kernel_covariance(int m, int n, DATA_TYPE float_n,
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {m, m});
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int j) {
+      policy_1D, KOKKOS_LAMBDA(const size_t j) {
         mean(j) = SCALAR_VAL(0.0);
-        for (int i = 0; i < _PB_N; i++)
+        for (size_t i = 0; i < n; i++)
           mean(j) += data(i, j);
         mean(j) /= float_n;
       });
 
   Kokkos::parallel_for<usePolyOpt>(
       policy_2D_1,
-      KOKKOS_LAMBDA(const int i, const int j) { data(i, j) -= mean(j); });
+      KOKKOS_LAMBDA(const size_t i, const size_t j) { data(i, j) -= mean(j); });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int i) {
-        for (int j = i; j < _PB_M; j++) {
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = i; j < m; j++) {
           cov(i, j) = SCALAR_VAL(0.0);
-          for (int k = 0; k < _PB_N; k++)
+          for (size_t k = 0; k < n; k++)
             cov(i, j) += data(k, i) * data(k, j);
           cov(i, j) /= (float_n - SCALAR_VAL(1.0));
           cov(j, i) = cov(i, j);
         }
       });
   // Kokkos::parallel_for(
-  //     policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
+  //     policy_2D_2, KOKKOS_LAMBDA(const size_t i, const size_t j) {
   //       cov(i, j) = SCALAR_VAL(0.0);
-  //       for (int k = 0; k < _PB_N; k++)
+  //       for (size_t k = 0; k < n; k++)
   //         cov(i, j) += data(k, i) * data(k, j);
   //       cov(i, j) /= (float_n - SCALAR_VAL(1.0));
   //       cov(j, i) = cov(i, j);
   //     });
 #else
 #pragma scop
-  for (int j = 0; j < _PB_M; j++) {
+  for (size_t j = 0; j < m; j++) {
     mean[j] = SCALAR_VAL(0.0);
-    for (int i = 0; i < _PB_N; i++)
+    for (size_t i = 0; i < n; i++)
       mean[j] += data[i][j];
     mean[j] /= float_n;
   }
 
-  for (int i = 0; i < _PB_N; i++)
-    for (int j = 0; j < _PB_M; j++)
+  for (size_t i = 0; i < n; i++)
+    for (size_t j = 0; j < m; j++)
       data[i][j] -= mean[j];
 
-  for (int i = 0; i < _PB_M; i++)
-    for (int j = i; j < _PB_M; j++) {
+  for (size_t i = 0; i < m; i++)
+    for (size_t j = i; j < m; j++) {
       cov[i][j] = SCALAR_VAL(0.0);
-      for (int k = 0; k < _PB_N; k++)
+      for (size_t k = 0; k < n; k++)
         cov[i][j] += data[k][i] * data[k][j];
       cov[i][j] /= (float_n - SCALAR_VAL(1.0));
       cov[j][i] = cov[i][j];
