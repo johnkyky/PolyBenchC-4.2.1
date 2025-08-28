@@ -47,33 +47,33 @@ static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_jacobi_2d(int tsteps, int n,
+static void kernel_jacobi_2d(size_t tsteps, size_t n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n),
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, N, N, n, n)) {
 #if defined(POLYBENCH_KOKKOS)
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 1}, {n - 1, n - 1}, {32, 32});
-  for (int t = 0; t < _PB_TSTEPS; t++) {
+  for (size_t t = 0; t < tsteps; t++) {
     Kokkos::parallel_for<usePolyOpt>(
-        policy, KOKKOS_LAMBDA(const int i, const int j) {
+        policy, KOKKOS_LAMBDA(const size_t i, const int j) {
           B(i, j) = SCALAR_VAL(0.2) * (A(i, j) + A(i, j - 1) + A(i, 1 + j) +
                                        A(1 + i, j) + A(i - 1, j));
         });
     Kokkos::parallel_for<usePolyOpt>(
-        policy, KOKKOS_LAMBDA(const int i, const int j) {
+        policy, KOKKOS_LAMBDA(const size_t i, const int j) {
           A(i, j) = SCALAR_VAL(0.2) * (B(i, j) + B(i, j - 1) + B(i, 1 + j) +
                                        B(1 + i, j) + B(i - 1, j));
         });
   }
 #else
-  for (int t = 0; t < _PB_TSTEPS; t++) {
+  for (size_t t = 0; t < tsteps; t++) {
 #pragma scop
-    for (int i = 1; i < _PB_N - 1; i++)
-      for (int j = 1; j < _PB_N - 1; j++)
+    for (size_t i = 1; i < n - 1; i++)
+      for (size_t j = 1; j < n - 1; j++)
         B[i][j] = SCALAR_VAL(0.2) * (A[i][j] + A[i][j - 1] + A[i][1 + j] +
                                      A[1 + i][j] + A[i - 1][j]);
-    for (int i = 1; i < _PB_N - 1; i++)
-      for (int j = 1; j < _PB_N - 1; j++)
+    for (size_t i = 1; i < n - 1; i++)
+      for (size_t j = 1; j < n - 1; j++)
         A[i][j] = SCALAR_VAL(0.2) * (B[i][j] + B[i][j - 1] + B[i][1 + j] +
                                      B[1 + i][j] + B[i - 1][j]);
 #pragma endscop

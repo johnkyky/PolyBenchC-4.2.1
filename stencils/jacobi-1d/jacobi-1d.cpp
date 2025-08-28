@@ -44,27 +44,27 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, A, N, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_jacobi_1d(int tsteps, int n,
+static void kernel_jacobi_1d(size_t tsteps, size_t n,
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, A, N, n),
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, B, N, n)) {
 #if defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<>(1, n - 1);
-  for (int t = 0; t < _PB_TSTEPS; t++) {
+  for (size_t t = 0; t < tsteps; t++) {
     Kokkos::parallel_for<usePolyOpt>(
-        policy, KOKKOS_LAMBDA(const int i) {
+        policy, KOKKOS_LAMBDA(const size_t i) {
           B(i) = 0.33333 * (A(i - 1) + A(i) + A(i + 1));
         });
     Kokkos::parallel_for<usePolyOpt>(
-        policy, KOKKOS_LAMBDA(const int i) {
+        policy, KOKKOS_LAMBDA(const size_t i) {
           A(i) = 0.33333 * (B(i - 1) + B(i) + B(i + 1));
         });
   }
 #else
-  for (int t = 0; t < _PB_TSTEPS; t++) {
+  for (size_t t = 0; t < tsteps; t++) {
 #pragma scop
-    for (int i = 1; i < _PB_N - 1; i++)
+    for (size_t i = 1; i < n - 1; i++)
       B[i] = 0.33333 * (A[i - 1] + A[i] + A[i + 1]);
-    for (int i = 1; i < _PB_N - 1; i++)
+    for (size_t i = 1; i < n - 1; i++)
       A[i] = 0.33333 * (B[i - 1] + B[i] + B[i + 1]);
 #pragma endscop
   }

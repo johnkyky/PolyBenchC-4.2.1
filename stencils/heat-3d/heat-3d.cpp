@@ -20,25 +20,25 @@
 #include "heat-3d.h"
 
 /* Array initialization. */
-static void init_array(int n,
+static void init_array(size_t n,
                        ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n),
                        ARRAY_3D_FUNC_PARAM(DATA_TYPE, B, N, N, N, n, n, n)) {
-  for (int i = 0; i < n; i++)
-    for (int j = 0; j < n; j++)
-      for (int k = 0; k < n; k++)
+  for (size_t i = 0; i < n; i++)
+    for (size_t j = 0; j < n; j++)
+      for (size_t k = 0; k < n; k++)
         ARRAY_3D_ACCESS(A, i, j, k) = ARRAY_3D_ACCESS(B, i, j, k) =
             (DATA_TYPE)(i + j + (n - k)) * 10 / (n);
 }
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
-static void print_array(int n,
+static void print_array(size_t n,
                         ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n)) {
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("A");
-  for (int i = 0; i < n; i++)
-    for (int j = 0; j < n; j++)
-      for (int k = 0; k < n; k++) {
+  for (size_t i = 0; i < n; i++)
+    for (size_t j = 0; j < n; j++)
+      for (size_t k = 0; k < n; k++) {
         if ((i * n * n + j * n + k) % 20 == 0)
           fprintf(POLYBENCH_DUMP_TARGET, "\n");
         fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
@@ -50,16 +50,16 @@ static void print_array(int n,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_heat_3d(int tsteps, int n,
+static void kernel_heat_3d(size_t tsteps, size_t n,
                            ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n),
                            ARRAY_3D_FUNC_PARAM(DATA_TYPE, B, N, N, N, n, n,
                                                n)) {
 #if defined(POLYBENCH_KOKKOS)
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1, 1, 1}, {n - 1, n - 1, n - 1});
-  for (int t = 1; t <= TSTEPS; t++) {
+  for (size_t t = 1; t <= tsteps; t++) {
     Kokkos::parallel_for<usePolyOpt>(
-        policy, KOKKOS_LAMBDA(const int i, const int j, const int k) {
+        policy, KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {
           B(i, j, k) = SCALAR_VAL(0.125) *
                            (A(i + 1, j, k) - SCALAR_VAL(2.0) * A(i, j, k) +
                             A(i - 1, j, k)) +
@@ -72,7 +72,7 @@ static void kernel_heat_3d(int tsteps, int n,
                        A(i, j, k);
         });
     Kokkos::parallel_for<usePolyOpt>(
-        policy, KOKKOS_LAMBDA(const int i, const int j, const int k) {
+        policy, KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {
           A(i, j, k) = SCALAR_VAL(0.125) *
                            (B(i + 1, j, k) - SCALAR_VAL(2.0) * B(i, j, k) +
                             B(i - 1, j, k)) +
@@ -86,11 +86,11 @@ static void kernel_heat_3d(int tsteps, int n,
         });
   }
 #else
-  for (int t = 1; t <= TSTEPS; t++) {
+  for (size_t t = 1; t <= tsteps; t++) {
 #pragma scop
-    for (int i = 1; i < _PB_N - 1; i++) {
-      for (int j = 1; j < _PB_N - 1; j++) {
-        for (int k = 1; k < _PB_N - 1; k++) {
+    for (size_t i = 1; i < n - 1; i++) {
+      for (size_t j = 1; j < n - 1; j++) {
+        for (size_t k = 1; k < n - 1; k++) {
           B[i][j][k] = SCALAR_VAL(0.125) *
                            (A[i + 1][j][k] - SCALAR_VAL(2.0) * A[i][j][k] +
                             A[i - 1][j][k]) +
@@ -104,9 +104,9 @@ static void kernel_heat_3d(int tsteps, int n,
         }
       }
     }
-    for (int i = 1; i < _PB_N - 1; i++) {
-      for (int j = 1; j < _PB_N - 1; j++) {
-        for (int k = 1; k < _PB_N - 1; k++) {
+    for (size_t i = 1; i < n - 1; i++) {
+      for (size_t j = 1; j < n - 1; j++) {
+        for (size_t k = 1; k < n - 1; k++) {
           A[i][j][k] = SCALAR_VAL(0.125) *
                            (B[i + 1][j][k] - SCALAR_VAL(2.0) * B[i][j][k] +
                             B[i - 1][j][k]) +
@@ -129,8 +129,8 @@ int main(int argc, char **argv) {
   INITIALIZE;
 
   /* Retrieve problem size. */
-  int n = N;
-  int tsteps = TSTEPS;
+  size_t n = N;
+  size_t tsteps = TSTEPS;
 
   /* Variable declaration/allocation. */
   POLYBENCH_3D_ARRAY_DECL(A, DATA_TYPE, N, N, N, n, n, n);

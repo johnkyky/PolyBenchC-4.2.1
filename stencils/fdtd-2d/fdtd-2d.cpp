@@ -77,7 +77,7 @@ static void print_array(int nx, int ny,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_fdtd_2d(int tmax, int nx, int ny,
+static void kernel_fdtd_2d(size_t tmax, size_t nx, size_t ny,
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, ex, NX, NY, nx, ny),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, ey, NX, NY, nx, ny),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny),
@@ -91,40 +91,39 @@ static void kernel_fdtd_2d(int tmax, int nx, int ny,
   const auto policy_2D_3 = Kokkos::MDRangePolicy<Kokkos::Rank<2>>(
       {0, 0}, {nx - 1, ny - 1}, {32, 32});
 
-  for (int t = 0; t < _PB_TMAX; t++) {
+  for (size_t t = 0; t < tmax; t++) {
+    Kokkos::parallel_for<usePolyOpt>(
+        policy_1D_y, KOKKOS_LAMBDA(const size_t j) { ey(0, j) = _fict_(t); });
 
     Kokkos::parallel_for<usePolyOpt>(
-        policy_1D_y, KOKKOS_LAMBDA(const int j) { ey(0, j) = _fict_(t); });
-
-    Kokkos::parallel_for<usePolyOpt>(
-        policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
+        policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
           ey(i, j) = ey(i, j) - SCALAR_VAL(0.5) * (hz(i, j) - hz(i - 1, j));
         });
 
     Kokkos::parallel_for<usePolyOpt>(
-        policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
+        policy_2D_2, KOKKOS_LAMBDA(const size_t i, const size_t j) {
           ex(i, j) = ex(i, j) - SCALAR_VAL(0.5) * (hz(i, j) - hz(i, j - 1));
         });
 
     Kokkos::parallel_for<usePolyOpt>(
-        policy_2D_3, KOKKOS_LAMBDA(const int i, const int j) {
+        policy_2D_3, KOKKOS_LAMBDA(const size_t i, const size_t j) {
           hz(i, j) = hz(i, j) - SCALAR_VAL(0.7) * (ex(i, j + 1) - ex(i, j) +
                                                    ey(i + 1, j) - ey(i, j));
         });
   }
 #else
-  for (int t = 0; t < _PB_TMAX; t++) {
+  for (size_t t = 0; t < tmax; t++) {
 #pragma scop
-    for (int j = 0; j < _PB_NY; j++)
+    for (size_t j = 0; j < ny; j++)
       ey[0][j] = _fict_[t];
-    for (int i = 1; i < _PB_NX; i++)
-      for (int j = 0; j < _PB_NY; j++)
+    for (size_t i = 1; i < nx; i++)
+      for (size_t j = 0; j < ny; j++)
         ey[i][j] = ey[i][j] - SCALAR_VAL(0.5) * (hz[i][j] - hz[i - 1][j]);
-    for (int i = 0; i < _PB_NX; i++)
-      for (int j = 1; j < _PB_NY; j++)
+    for (size_t i = 0; i < nx; i++)
+      for (size_t j = 1; j < ny; j++)
         ex[i][j] = ex[i][j] - SCALAR_VAL(0.5) * (hz[i][j] - hz[i][j - 1]);
-    for (int i = 0; i < _PB_NX - 1; i++)
-      for (int j = 0; j < _PB_NY - 1; j++)
+    for (size_t i = 0; i < nx - 1; i++)
+      for (size_t j = 0; j < ny - 1; j++)
         hz[i][j] = hz[i][j] - SCALAR_VAL(0.7) * (ex[i][j + 1] - ex[i][j] +
                                                  ey[i + 1][j] - ey[i][j]);
 #pragma endscop
