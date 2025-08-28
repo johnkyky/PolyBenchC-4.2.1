@@ -87,17 +87,18 @@ constexpr bool usePolyOpt = not Kokkos::usePolyOpt;
   }                                                                            \
   Kokkos::finalize();
 
-#define ARRAY_1D_FUNC_PARAM(type, var, dim1, ddim1) Kokkos::View<type *> &var
+#define ARRAY_1D_FUNC_PARAM(type, var, dim1, ddim1)                            \
+  Kokkos::View<#var, type *> &var
 #define ARRAY_2D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2)               \
-  Kokkos::View<type **> &var
+  Kokkos::View<#var, type **> &var
 #define ARRAY_3D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3)  \
-  Kokkos::View<type ***> &var
+  Kokkos::View<#var, type ***> &var
 #define ARRAY_4D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
                             dim4, ddim4)                                       \
-  Kokkos::View<type ****> &var
+  Kokkos::View<#var, type ****> &var
 #define ARRAY_5D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
                             dim4, ddim4, dim5, ddim5)                          \
-  Kokkos::View<type ****> &var
+  Kokkos::View<#var, type ****> &var
 
 #define ARRAY_1D_ACCESS(var, i) var(i)
 #define ARRAY_2D_ACCESS(var, i, j) var(i, j)
@@ -264,25 +265,25 @@ constexpr bool usePolyOpt = not Kokkos::usePolyOpt;
                       ddim1, ddim2, ddim3, ddim4, ddim5);
 #elif defined(POLYBENCH_KOKKOS)
 #define POLYBENCH_1D_ARRAY_DECL(var, type, dim1, ddim1)                        \
-  Kokkos::View<type *> var("var", POLYBENCH_C99_SELECT(dim1, ddim1));
+  Kokkos::View<#var, type *> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1));
 #define POLYBENCH_2D_ARRAY_DECL(var, type, dim1, dim2, ddim1, ddim2)           \
-  Kokkos::View<type **> var("var", POLYBENCH_C99_SELECT(dim1, ddim1),          \
-                            POLYBENCH_C99_SELECT(dim2, ddim2));
+  Kokkos::View<#var, type **> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1),     \
+                                  POLYBENCH_C99_SELECT(dim2, ddim2));
 #define POLYBENCH_3D_ARRAY_DECL(var, type, dim1, dim2, dim3, ddim1, ddim2,     \
                                 ddim3)                                         \
-  Kokkos::View<type ***> var("var", POLYBENCH_C99_SELECT(dim1, ddim1),         \
-                             POLYBENCH_C99_SELECT(dim2, ddim2),                \
-                             POLYBENCH_C99_SELECT(dim3, ddim3));
+  Kokkos::View<#var, type ***> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1),    \
+                                   POLYBENCH_C99_SELECT(dim2, ddim2),          \
+                                   POLYBENCH_C99_SELECT(dim3, ddim3));
 #define POLYBENCH_4D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, ddim1,      \
                                 ddim2, ddim3, ddim4)                           \
-  Kokkos::View<type ****> var("var", POLYBENCH_C99_SELECT(dim1, ddim1),        \
-                              POLYBENCH_C99_SELECT(dim2, ddim2),               \
-                              POLYBENCH_C99_SELECT(dim3, ddim3),               \
-                              POLYBENCH_C99_SELECT(dim4, ddim4));
+  Kokkos::View<#var, type ****> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1),   \
+                                    POLYBENCH_C99_SELECT(dim2, ddim2),         \
+                                    POLYBENCH_C99_SELECT(dim3, ddim3),         \
+                                    POLYBENCH_C99_SELECT(dim4, ddim4));
 #define POLYBENCH_5D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, dim5,       \
                                 ddim1, ddim2, ddim3, ddim4, ddim5)             \
-  Kokkos::View<type *****> var(                                                \
-      "var", POLYBENCH_C99_SELECT(dim1, ddim1),                                \
+  Kokkos::View<#var, type *****> var(                                          \
+      #var, POLYBENCH_C99_SELECT(dim1, ddim1),                                 \
       POLYBENCH_C99_SELECT(dim2, ddim2), POLYBENCH_C99_SELECT(dim3, ddim3),    \
       POLYBENCH_C99_SELECT(dim4, ddim4), POLYBENCH_C99_SELECT(dim5, ddim5));
 #else
