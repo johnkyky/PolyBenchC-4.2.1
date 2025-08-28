@@ -220,38 +220,38 @@ mkdir -p $output_dir
 
 echo_replace "Generating build files for Polybench standard version\r"
 cmake -S $polybench_dir \
-  -B $build_std \
   -DCMAKE_CXX_COMPILER=${llvm_install_dir} \
   -DCMAKE_BUILD_TYPE=Release \
   -DPB_CYCLE_MONITORING=ON \
   -DPB_DUMP_ARRAYS=${print_output} \
-  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_std.log
+  -DPB_DATASET_SIZE=${dataset} \
+  -B $build_std >>$output_dir/cmake_std.log
 
 echo_replace "Generating build files for Polybench Kokkos version\r"
 cmake -S $polybench_dir \
-  -B $build_kokkos \
   -DCMAKE_CXX_COMPILER=${llvm_install_dir} \
   -DCMAKE_BUILD_TYPE=Release \
   -DPB_CYCLE_MONITORING=ON \
+  -DPB_DUMP_ARRAYS=${print_output} \
+  -DPB_DATASET_SIZE=${dataset} \
+  -B $build_kokkos \
   -DPB_KOKKOS=ON \
   -DPB_KOKKOS_DIR=${kokkos_install_dir_for_kokkos} \
   -DKokkos_ENABLE_SERIAL=ON \
-  -DKokkos_ENABLE_OPENMP=OFF \
-  -DPB_DUMP_ARRAYS=${print_output} \
-  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_kokkos.log
+  -DKokkos_ENABLE_OPENMP=OFF >>$output_dir/cmake_kokkos.log
 
 echo_replace "Generating build files for Polybench Kokkos version with polly\r"
 cmake -S $polybench_dir \
-  -B $build_polly \
   -DCMAKE_CXX_COMPILER=${llvm_install_dir} \
   -DCMAKE_BUILD_TYPE=Release \
   -DPB_CYCLE_MONITORING=ON \
+  -DPB_DUMP_ARRAYS=${print_output} \
+  -DPB_DATASET_SIZE=${dataset} \
+  -B $build_polly \
   -DPB_KOKKOS=ON \
   -DPB_KOKKOS_DIR=${kokkos_install_dir_for_polly} \
   -DPB_USE_POLLY=ON \
-  -DKokkos_ENABLE_SERIAL=ON \
-  -DPB_DUMP_ARRAYS=${print_output} \
-  -DPB_DATASET_SIZE=${dataset} >>$output_dir/cmake_polly.log
+  -DKokkos_ENABLE_SERIAL=ON >>$output_dir/cmake_polly.log
 
 # set variable to the benchmarks you want to running
 export OMP_PROC_BIND=spread
