@@ -47,7 +47,16 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, A, N, n)) {
 static void kernel_jacobi_1d(size_t tsteps, size_t n,
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, A, N, n),
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, B, N, n)) {
-#if defined(POLYBENCH_KOKKOS)
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_time = Kokkos::RangePolicy<Kokkos::Serial>(0, tsteps);
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_time, KOKKOS_LAMBDA(const size_t t) {
+        for (size_t i = 1; i < n - 1; i++)
+          B(i) = 0.33333 * (A(i - 1) + A(i) + A(i + 1));
+        for (size_t i = 1; i < n - 1; i++)
+          A(i) = 0.33333 * (B(i - 1) + B(i) + B(i + 1));
+      });
+#elif defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<>(1, n - 1);
   for (size_t t = 0; t < tsteps; t++) {
     Kokkos::parallel_for<usePolyOpt>(
