@@ -82,7 +82,26 @@ static void kernel_fdtd_2d(size_t tmax, size_t nx, size_t ny,
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, ey, NX, NY, nx, ny),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny),
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, _fict_, TMAX, tmax)) {
-#if defined(POLYBENCH_KOKKOS)
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_time = Kokkos::RangePolicy<Kokkos::Serial>(0, tmax);
+
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_time, KOKKOS_LAMBDA(const size_t t) {
+        for (size_t j = 0; j < ny; j++)
+          ey(0, j) = _fict_(t);
+        for (size_t i = 1; i < nx; i++)
+          for (size_t j = 0; j < ny; j++)
+            ey(i, j) = ey(i, j) - SCALAR_VAL(0.5) * (hz(i, j) - hz(i - 1, j));
+        for (size_t i = 0; i < nx; i++)
+          for (size_t j = 1; j < ny; j++)
+            ex(i, j) = ex(i, j) - SCALAR_VAL(0.5) * (hz(i, j) - hz(i, j - 1));
+        for (size_t i = 0; i < nx - 1; i++)
+          for (size_t j = 0; j < ny - 1; j++)
+            hz(i, j) = hz(i, j) - SCALAR_VAL(0.7) * (ex(i, j + 1) - ex(i, j) +
+                                                     ey(i + 1, j) - ey(i, j));
+      });
+
+#elif defined(POLYBENCH_KOKKOS)
   const auto policy_1D_y = Kokkos::RangePolicy<>(0, ny);
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 0}, {nx, ny}, {32, 32});

@@ -54,7 +54,44 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
                            ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, N, N, N, n, n, n),
                            ARRAY_3D_FUNC_PARAM(DATA_TYPE, B, N, N, N, n, n,
                                                n)) {
-#if defined(POLYBENCH_KOKKOS)
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_time = Kokkos::RangePolicy<Kokkos::Serial>(0, tsteps + 1);
+  Kokkos::parallel_for<usePolyOpt>(
+      policy_time, KOKKOS_LAMBDA(const size_t t) {
+        for (size_t i = 1; i < n - 1; i++) {
+          for (size_t j = 1; j < n - 1; j++) {
+            for (size_t k = 1; k < n - 1; k++) {
+              B(i, j, k) = SCALAR_VAL(0.125) *
+                               (A(i + 1, j, k) - SCALAR_VAL(2.0) * A(i, j, k) +
+                                A(i - 1, j, k)) +
+                           SCALAR_VAL(0.125) *
+                               (A(i, j + 1, k) - SCALAR_VAL(2.0) * A(i, j, k) +
+                                A(i, j - 1, k)) +
+                           SCALAR_VAL(0.125) *
+                               (A(i, j, k + 1) - SCALAR_VAL(2.0) * A(i, j, k) +
+                                A(i, j, k - 1)) +
+                           A(i, j, k);
+            }
+          }
+        }
+        for (size_t i = 1; i < n - 1; i++) {
+          for (size_t j = 1; j < n - 1; j++) {
+            for (size_t k = 1; k < n - 1; k++) {
+              A(i, j, k) = SCALAR_VAL(0.125) *
+                               (B(i + 1, j, k) - SCALAR_VAL(2.0) * B(i, j, k) +
+                                B(i - 1, j, k)) +
+                           SCALAR_VAL(0.125) *
+                               (B(i, j + 1, k) - SCALAR_VAL(2.0) * B(i, j, k) +
+                                B(i, j - 1, k)) +
+                           SCALAR_VAL(0.125) *
+                               (B(i, j, k + 1) - SCALAR_VAL(2.0) * B(i, j, k) +
+                                B(i, j, k - 1)) +
+                           B(i, j, k);
+            }
+          }
+        }
+      });
+#elif defined(POLYBENCH_KOKKOS)
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1, 1, 1}, {n - 1, n - 1, n - 1});
   for (size_t t = 1; t <= tsteps; t++) {
