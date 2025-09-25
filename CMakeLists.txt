@@ -116,7 +116,7 @@ if(PB_KOKKOS AND PB_USE_POLLY)
     "SHELL:-mllvm -polly-process-unprofitable"
     "SHELL:-mllvm -polly-stmt-granularity=store"
     "SHELL:-mllvm -polly-dot"
-    # "SHELL:-mllvm -polly-export" "SHELL:-mllvm -polly-print-instructions"
+    "SHELL:-mllvm -polly-export"
   )
 endif()
 
