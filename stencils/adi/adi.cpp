@@ -77,7 +77,7 @@ static void kernel_adi(size_t tsteps, size_t n,
   f = d;
 
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_time = Kokkos::RangePolicy<Kokkos::Serial>(1, tsteps + 1);
+  const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(1, tsteps + 1);
 
   Kokkos::parallel_for<usePolyOpt>(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
