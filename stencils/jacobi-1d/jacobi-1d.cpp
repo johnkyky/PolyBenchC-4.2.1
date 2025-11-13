@@ -48,7 +48,7 @@ static void kernel_jacobi_1d(size_t tsteps, size_t n,
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, A, N, n),
                              ARRAY_1D_FUNC_PARAM(DATA_TYPE, B, N, n)) {
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_time = Kokkos::RangePolicy<Kokkos::Serial>(0, tsteps);
+  const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(0, tsteps);
   Kokkos::parallel_for<usePolyOpt>(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
         for (size_t i = 1; i < n - 1; i++)

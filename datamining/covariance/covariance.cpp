@@ -53,8 +53,9 @@ static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
                               ARRAY_2D_FUNC_PARAM(DATA_TYPE, cov, M, M, m, m),
                               ARRAY_1D_FUNC_PARAM(DATA_TYPE, mean, M, m)) {
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_1D = Kokkos::RangePolicy<>(0, m);
-  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, m});
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
+  const auto policy_2D =
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, m});
 
   Kokkos::parallel_for<usePolyOpt,
                        "p0.l0 == 0, p0.l0 == p2.l0, p0.u0 == p2.u0, p1.l0 == "
