@@ -83,7 +83,7 @@ static void kernel_fdtd_2d(size_t tmax, size_t nx, size_t ny,
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, hz, NX, NY, nx, ny),
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, _fict_, TMAX, tmax)) {
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_time = Kokkos::RangePolicy<Kokkos::Serial>(0, tmax);
+  const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(0, tmax);
 
   Kokkos::parallel_for<usePolyOpt>(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
