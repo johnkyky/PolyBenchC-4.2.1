@@ -57,38 +57,38 @@ static void print_array(int m, int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, s, M, m),
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_bicg(int m, int n,
+static void kernel_bicg(int m, size_t n,
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, M, n, m),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, s, M, m),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, q, N, n),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, p, M, m),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n)) {
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_1D_1 = Kokkos::RangePolicy<>(0, m);
-  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+  const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
+  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int i) { s(i) = SCALAR_VAL(0.0); });
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_2, KOKKOS_LAMBDA(const int i) {
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p1.l0 == 0">(
+      "kernel", policy_1D_1,
+      KOKKOS_LAMBDA(const size_t i) { s(i) = SCALAR_VAL(0.0); }, policy_1D_2,
+      KOKKOS_LAMBDA(const size_t i) {
         q(i) = SCALAR_VAL(0.0);
-        for (int j = 0; j < m; j++) {
+        for (size_t j = 0; j < m; j++) {
           s(j) = s(j) + r(i) * A(i, j);
           q(i) = q(i) + A(i, j) * p(j);
         }
       });
 #elif defined(POLYBENCH_KOKKOS)
-  const auto policy_1D_1 = Kokkos::RangePolicy<>(0, m);
-  const auto policy_1D_2 = Kokkos::RangePolicy<>(0, n);
+  const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
+  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int j) {
+      policy_1D_1, KOKKOS_LAMBDA(const size_t j) {
         s(j) = 0;
         for (int i = 0; i < n; i++)
           s(j) = s(j) + r(i) * A(i, j);
       });
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_2, KOKKOS_LAMBDA(const int i) {
+      policy_1D_2, KOKKOS_LAMBDA(const size_t i) {
         q(i) = SCALAR_VAL(0.0);
         for (int j = 0; j < m; j++) {
           q(i) = q(i) + A(i, j) * p(j);
@@ -96,11 +96,11 @@ static void kernel_bicg(int m, int n,
       });
 #else
 #pragma scop
-  for (int i = 0; i < _PB_M; i++)
+  for (size_t i = 0; i < m; i++)
     s[i] = 0;
-  for (int i = 0; i < _PB_N; i++) {
+  for (size_t i = 0; i < n; i++) {
     q[i] = SCALAR_VAL(0.0);
-    for (int j = 0; j < _PB_M; j++) {
+    for (size_t j = 0; j < m; j++) {
       s[j] = s[j] + r[i] * A[i][j];
       q[i] = q[i] + A[i][j] * p[j];
     }
