@@ -80,7 +80,10 @@ static void kernel_gemver(size_t n, DATA_TYPE alpha, DATA_TYPE beta,
   const auto policy_2D =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, n});
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for<
+      usePolyOpt, "p0.l0==0, p0.l1==0, p1.l0==0, p1.l1==0, p2.l0==0, p3.l0==0, "
+                  "p3.l1==0, p0.u0==p0.u1, p0.u0==p1.u0, p0.u0==p1.u1, "
+                  "p0.u0==p2.u0, p0.u0==p3.u0, p0.u0==p3.u1">(
       "kernel", policy_2D,
       KOKKOS_LAMBDA(const size_t i, const size_t j) {
         A(i, j) = A(i, j) + u1(i) * v1(j) + u2(i) * v2(j);
