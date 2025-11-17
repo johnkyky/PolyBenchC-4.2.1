@@ -49,34 +49,49 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_atax(int m, int n,
+static void kernel_atax(size_t m, size_t n,
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, M, N, m, n),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, x, N, n),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n),
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, tmp, M, m)) {
-#if defined(POLYBENCH_KOKKOS)
-  const auto policy_1D_1 = Kokkos::RangePolicy<>(0, n);
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
   const auto policy_1D_2 = Kokkos::RangePolicy<>(0, m);
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_1, KOKKOS_LAMBDA(const int i) { ARRAY_1D_ACCESS(y, i) = 0; });
+
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p1.l0 == 0">(
+      "kernel", policy_1D_1, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; },
+      policy_1D_2,
+      KOKKOS_LAMBDA(const size_t i) {
+        tmp(i) = SCALAR_VAL(0.0);
+        for (size_t j = 0; j < n; j++)
+          tmp(i) = tmp(i) + A(i, j) * x(j);
+        for (size_t j = 0; j < n; j++)
+          y(j) = y(j) + A(i, j) * tmp(i);
+      });
+
+#elif defined(POLYBENCH_KOKKOS)
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D_2, KOKKOS_LAMBDA(const int i) {
-        DATA_TYPE tmp = SCALAR_VAL(0.0);
-        for (int j = 0; j < n; j++)
-          tmp += A(i, j) * x(j);
-        for (int j = 0; j < n; j++)
-          Kokkos::atomic_add(&y(j), A(i, j) * tmp);
-      });
+      policy, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; });
+
+  for (size_t i = 0; i < m; i++) {
+    DATA_TYPE tmp = SCALAR_VAL(0.0);
+    Kokkos::parallel_for<usePolyOpt>(
+        policy, KOKKOS_LAMBDA(const size_t i) { tmp += A(i, j) * x(j); });
+    Kokkos::parallel_for<usePolyOpt>(
+        policy,
+        KOKKOS_LAMBDA(const size_t i) { y(j) = y(j) + A(i, j) * tmp(i); });
+  });
 #else
 #pragma scop
-  for (int i = 0; i < _PB_N; i++)
+  for (size_t i = 0; i < n; i++)
     y[i] = 0;
-  for (int i = 0; i < _PB_M; i++) {
+  for (size_t i = 0; i < m; i++) {
     tmp[i] = SCALAR_VAL(0.0);
-    for (int j = 0; j < _PB_N; j++)
+    for (size_t j = 0; j < n; j++)
       tmp[i] = tmp[i] + A[i][j] * x[j];
-    for (int j = 0; j < _PB_N; j++)
+    for (size_t j = 0; j < n; j++)
       y[j] = y[j] + A[i][j] * tmp[i];
   }
 #pragma endscop
