@@ -56,7 +56,7 @@ static void kernel_atax(size_t m, size_t n,
                         ARRAY_1D_FUNC_PARAM(DATA_TYPE, tmp, M, m)) {
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
-  const auto policy_1D_2 = Kokkos::RangePolicy<>(0, m);
+  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
 
   Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p1.l0 == 0">(
       "kernel", policy_1D_1, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; },
