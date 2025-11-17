@@ -47,25 +47,28 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x, N, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_trisolv(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, L, N, N, n, n),
+static void kernel_trisolv(size_t n,
+                           ARRAY_2D_FUNC_PARAM(DATA_TYPE, L, N, N, n, n),
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, x, N, n),
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, b, N, n)) {
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int i) {
+  // p0.l0 == 0
+  Kokkos::parallel_for<usePolyOpt, "">(
+      policy, KOKKOS_LAMBDA(const size_t i) {
         x(i) = b(i);
-        for (int j = 0; j < i; j++)
+        for (size_t j = 0; j < i; j++)
           x(i) -= L(i, j) * x(j);
         x(i) = x(i) / L(i, i);
       });
 #elif defined(POLYBENCH_KOKKOS)
-  for (int i = 0; i < n; i++) {
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
+  for (size_t i = 0; i < n; i++) {
     DATA_TYPE sum = DATA_TYPE(0);
     Kokkos::parallel_reduce(
-        "Compute_Sum", Kokkos::RangePolicy<>(0, i),
-        KOKKOS_LAMBDA(int j, DATA_TYPE &local_sum) {
+        policy,
+        KOKKOS_LAMBDA(size_t j, DATA_TYPE &local_sum) {
           local_sum += L(i, j) * x(j);
         },
         sum);
@@ -75,9 +78,9 @@ static void kernel_trisolv(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, L, N, N, n, n),
   }
 #else
 #pragma scop
-  for (int i = 0; i < _PB_N; i++) {
+  for (size_t i = 0; i < n; i++) {
     x[i] = b[i];
-    for (int j = 0; j < i; j++)
+    for (size_t j = 0; j < i; j++)
       x[i] -= L[i][j] * x[j];
     x[i] = x[i] / L[i][i];
   }
