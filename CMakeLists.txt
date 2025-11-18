@@ -105,7 +105,7 @@ else()
   message(STATUS "Kokkos disabled")
 endif()
 
-if(PB_KOKKOS AND PB_USE_POLLY)
+if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
   add_definitions(-DPOLYBENCH_USE_POLLY)
   message(STATUS "Polly enabled")
 
