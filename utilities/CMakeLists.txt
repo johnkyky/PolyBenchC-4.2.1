@@ -1,7 +1,7 @@
 add_library(polybench_utils STATIC polybench.cpp)
 target_include_directories(polybench_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(PB_KOKKOS)
+if(PB_KOKKOS OR PB_KOKKOS_DIR)
   if(PB_KOKKOS_DIR STREQUAL "")
     target_link_libraries(polybench_utils PUBLIC kokkos)
   else()
