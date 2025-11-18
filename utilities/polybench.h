@@ -27,6 +27,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <string.h>
 
 #if defined(POLYBENCH_KOKKOS)
 #include <Kokkos_Core.hpp>
