@@ -123,6 +123,7 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     "SHELL:-mllvm -polly-dependences-computeout=0"
     "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter"
     # "SHELL:-mllvm -polly-kokkos-check-parallelism=false"
+    "SHELL:-mllvm -polly-codegen-emit-rtc-print"
   )
 endif()
 
