@@ -58,7 +58,31 @@ static void kernel_gesummv(size_t n, DATA_TYPE alpha, DATA_TYPE beta,
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, x, N, n),
                            ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
 #if defined(POLYBENCH_USE_POLLY)
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
+
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
+      "kernel", policy, KOKKOS_LAMBDA(const size_t i) {
+        tmp(i) = SCALAR_VAL(0.0);
+        y(i) = SCALAR_VAL(0.0);
+        for (size_t j = 0; j < n; j++) {
+          tmp(i) = A(i, j) * x(j) + tmp(i);
+          y(i) = B(i, j) * x(j) + y(i);
+        }
+        y(i) = alpha * tmp(i) + beta * y(i);
+      });
 #elif defined(POLYBENCH_KOKKOS)
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
+
+  Kokkos::parallel_for(
+      "kernel", policy, KOKKOS_LAMBDA(const size_t i) {
+        tmp(i) = SCALAR_VAL(0.0);
+        y(i) = SCALAR_VAL(0.0);
+        for (size_t j = 0; j < n; j++) {
+          tmp(i) = A(i, j) * x(j) + tmp(i);
+          y(i) = B(i, j) * x(j) + y(i);
+        }
+        y(i) = alpha * tmp(i) + beta * y(i);
+      });
 #else
 #pragma scop
   for (size_t i = 0; i < n; i++) {

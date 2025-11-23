@@ -1,3 +1,4 @@
+add_subdirectory(gemm)
 add_subdirectory(gemver)
 add_subdirectory(gesummv)
 add_subdirectory(symm)

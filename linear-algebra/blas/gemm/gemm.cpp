@@ -57,7 +57,8 @@ static void print_array(int ni, int nj,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_gemm(int ni, int nj, int nk, DATA_TYPE alpha, DATA_TYPE beta,
+static void kernel_gemm(size_t ni, size_t nj, int nk, DATA_TYPE alpha,
+                        DATA_TYPE beta,
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, NI, NJ, ni, nj),
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, NI, NK, ni, nk),
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, NK, NJ, nk, nj)) {
@@ -71,8 +72,27 @@ static void kernel_gemm(int ni, int nj, int nk, DATA_TYPE alpha, DATA_TYPE beta,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, ni);
 
-  Kokkos::parallel_for<usePolyOpt>(policy, KOKKOS_LAMBDA(const size_t i){});
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
+      policy, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < nj; j++)
+          C(i, j) *= beta;
+        for (size_t k = 0; k < nk; k++) {
+          for (size_t j = 0; j < nj; j++)
+            C(i, j) += alpha * A(i, k) * B(k, j);
+        }
+      });
 #elif defined(POLYBENCH_KOKKOS)
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, ni);
+
+  Kokkos::parallel_for(
+      policy, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < nj; j++)
+          C(i, j) *= beta;
+        for (size_t k = 0; k < nk; k++) {
+          for (size_t j = 0; j < nj; j++)
+            C(i, j) += alpha * A(i, k) * B(k, j);
+        }
+      });
 #else
 #pragma scop
   for (size_t i = 0; i < ni; i++) {

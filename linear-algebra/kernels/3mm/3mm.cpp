@@ -58,7 +58,7 @@ static void print_array(int ni, int nl,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_3mm(int ni, int nj, int nk, int nl, int nm,
+static void kernel_3mm(size_t ni, size_t nj, size_t nk, size_t nl, size_t nm,
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, E, NI, NJ, ni, nj),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, NI, NK, ni, nk),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, NK, NJ, nk, nj),
@@ -66,7 +66,36 @@ static void kernel_3mm(int ni, int nj, int nk, int nl, int nm,
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, NJ, NM, nj, nm),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, D, NM, NL, nm, nl),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, G, NI, NL, ni, nl)) {
-#if defined(POLYBENCH_KOKKOS)
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_2D_1 =
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {ni, nj});
+  const auto policy_2D_2 =
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {nj, nl});
+  const auto policy_2D_3 =
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {ni, nl});
+
+  Kokkos::parallel_for<
+      usePolyOpt, "p0.l0 == 0, p0.l1 == 0, p1.l0 == 0, p1.l1 == 0, p2.l0 == 0, "
+                  "p2.l1 == 0, p0.u0 == p2.u0, p0.u1 == p1.u0, p1.u1 == p2.u1">(
+      "kernel", policy_2D_1,
+      KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        E(i, j) = SCALAR_VAL(0.0);
+        for (size_t k = 0; k < nk; ++k)
+          E(i, j) += A(i, k) * B(k, j);
+      },
+      policy_2D_2,
+      KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        F(i, j) = SCALAR_VAL(0.0);
+        for (size_t k = 0; k < nm; ++k)
+          F(i, j) += C(i, k) * D(k, j);
+      },
+      policy_2D_3,
+      KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        G(i, j) = SCALAR_VAL(0.0);
+        for (size_t k = 0; k < nj; ++k)
+          G(i, j) += E(i, k) * F(k, j);
+      });
+#elif defined(POLYBENCH_KOKKOS)
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nj});
   const auto policy_2D_2 =
@@ -74,54 +103,48 @@ static void kernel_3mm(int ni, int nj, int nk, int nl, int nm,
   const auto policy_2D_3 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nl});
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
-        ARRAY_2D_ACCESS(E, i, j) = SCALAR_VAL(0.0);
-        for (int k = 0; k < _PB_NK; ++k)
-          ARRAY_2D_ACCESS(E, i, j) +=
-              ARRAY_2D_ACCESS(A, i, k) * ARRAY_2D_ACCESS(B, k, j);
+  Kokkos::parallel_for(
+      policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        E(i, j) = SCALAR_VAL(0.0);
+        for (size_t k = 0; k < nk; ++k)
+          E(i, j) += A(i, k) * B(k, j);
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
-        ARRAY_2D_ACCESS(F, i, j) = SCALAR_VAL(0.0);
-        for (int k = 0; k < _PB_NM; ++k)
-          ARRAY_2D_ACCESS(F, i, j) +=
-              ARRAY_2D_ACCESS(C, i, k) * ARRAY_2D_ACCESS(D, k, j);
+  Kokkos::parallel_for(
+      policy_2D_2, KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        F(i, j) = SCALAR_VAL(0.0);
+        for (size_t k = 0; k < nm; ++k)
+          F(i, j) += C(i, k) * D(k, j);
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_2D_3, KOKKOS_LAMBDA(const int i, const int j) {
-        ARRAY_2D_ACCESS(G, i, j) = SCALAR_VAL(0.0);
-        for (int k = 0; k < _PB_NJ; ++k)
-          ARRAY_2D_ACCESS(G, i, j) +=
-              ARRAY_2D_ACCESS(E, i, k) * ARRAY_2D_ACCESS(F, k, j);
+  Kokkos::parallel_for(
+      policy_2D_3, KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        G(i, j) = SCALAR_VAL(0.0);
+        for (size_t k = 0; k < nj; ++k)
+          G(i, j) += E(i, k) * F(k, j);
       });
 #else
 #pragma scop
   /* E := A*B */
-  for (int i = 0; i < _PB_NI; i++)
-    for (int j = 0; j < _PB_NJ; j++) {
-      ARRAY_2D_ACCESS(E, i, j) = SCALAR_VAL(0.0);
-      for (int k = 0; k < _PB_NK; ++k)
-        ARRAY_2D_ACCESS(E, i, j) +=
-            ARRAY_2D_ACCESS(A, i, k) * ARRAY_2D_ACCESS(B, k, j);
+  for (size_t i = 0; i < ni; i++)
+    for (size_t j = 0; j < nj; j++) {
+      E[i][j] = SCALAR_VAL(0.0);
+      for (size_t k = 0; k < nk; ++k)
+        E[i][j] += A[i][k] * B[k][j];
     }
   /* F := C*D */
-  for (int i = 0; i < _PB_NJ; i++)
-    for (int j = 0; j < _PB_NL; j++) {
-      ARRAY_2D_ACCESS(F, i, j) = SCALAR_VAL(0.0);
-      for (int k = 0; k < _PB_NM; ++k)
-        ARRAY_2D_ACCESS(F, i, j) +=
-            ARRAY_2D_ACCESS(C, i, k) * ARRAY_2D_ACCESS(D, k, j);
+  for (size_t i = 0; i < nj; i++)
+    for (size_t j = 0; j < nl; j++) {
+      F[i][j] = SCALAR_VAL(0.0);
+      for (size_t k = 0; k < nm; ++k)
+        F[i][j] += C[i][k] * D[k][j];
     }
   /* G := E*F */
-  for (int i = 0; i < _PB_NI; i++)
-    for (int j = 0; j < _PB_NL; j++) {
-      ARRAY_2D_ACCESS(G, i, j) = SCALAR_VAL(0.0);
-      for (int k = 0; k < _PB_NJ; ++k)
-        ARRAY_2D_ACCESS(G, i, j) +=
-            ARRAY_2D_ACCESS(E, i, k) * ARRAY_2D_ACCESS(F, k, j);
+  for (size_t i = 0; i < ni; i++)
+    for (size_t j = 0; j < nl; j++) {
+      G[i][j] = SCALAR_VAL(0.0);
+      for (size_t k = 0; k < nj; ++k)
+        G[i][j] += E[i][k] * F[k][j];
     }
 #pragma endscop
 #endif

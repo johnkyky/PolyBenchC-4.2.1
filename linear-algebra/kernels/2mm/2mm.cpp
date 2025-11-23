@@ -61,51 +61,70 @@ static void print_array(int ni, int nl,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_2mm(int ni, int nj, int nk, int nl, DATA_TYPE alpha,
-                       DATA_TYPE beta,
+static void kernel_2mm(size_t ni, size_t nj, size_t nk, size_t nl,
+                       DATA_TYPE alpha, DATA_TYPE beta,
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, tmp, NI, NJ, ni, nj),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, NI, NK, ni, nk),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, NK, NJ, nk, nj),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, NJ, NL, nj, nl),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, D, NI, NL, ni, nl)) {
-#if defined(POLYBENCH_KOKKOS)
+
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, ni);
+
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p1.l0 == 0, p0.u0 == p1.u0">(
+      "kernel", policy,
+      KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < nj; j++) {
+          tmp(i, j) = SCALAR_VAL(0.0);
+          for (size_t k = 0; k < nk; ++k)
+            tmp(i, j) += alpha * A(i, k) * B(k, j);
+        }
+      },
+      policy,
+      KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < nl; j++) {
+          D(i, j) *= beta;
+          for (size_t k = 0; k < nj; ++k)
+            D(i, j) += tmp(i, k) * C(k, j);
+        }
+      });
+#elif defined(POLYBENCH_KOKKOS)
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nj});
   const auto policy_2D_2 =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nl});
 
   /* D := alpha*A*B*C + beta*D */
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_2D_1, KOKKOS_LAMBDA(const int i, const int j) {
+  Kokkos::parallel_for(
+      policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         ARRAY_2D_ACCESS(tmp, i, j) = SCALAR_VAL(0.0);
-        for (int k = 0; k < _PB_NK; ++k)
+        for (size_t k = 0; k < _PB_NK; ++k)
           ARRAY_2D_ACCESS(tmp, i, j) +=
               alpha * ARRAY_2D_ACCESS(A, i, k) * ARRAY_2D_ACCESS(B, k, j);
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_2D_2, KOKKOS_LAMBDA(const int i, const int j) {
+  Kokkos::parallel_for(
+      policy_2D_2, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         ARRAY_2D_ACCESS(D, i, j) *= beta;
-        for (int k = 0; k < _PB_NJ; ++k)
+        for (size_t k = 0; k < _PB_NJ; ++k)
           ARRAY_2D_ACCESS(D, i, j) +=
               ARRAY_2D_ACCESS(tmp, i, k) * ARRAY_2D_ACCESS(C, k, j);
       });
 #else
 #pragma scop
   /* D := alpha*A*B*C + beta*D */
-  for (int i = 0; i < _PB_NI; i++)
-    for (int j = 0; j < _PB_NJ; j++) {
-      ARRAY_2D_ACCESS(tmp, i, j) = SCALAR_VAL(0.0);
-      for (int k = 0; k < _PB_NK; ++k)
-        ARRAY_2D_ACCESS(tmp, i, j) +=
-            alpha * ARRAY_2D_ACCESS(A, i, k) * ARRAY_2D_ACCESS(B, k, j);
+  for (size_t i = 0; i < ni; i++)
+    for (size_t j = 0; j < nj; j++) {
+      tmp[i][j] = SCALAR_VAL(0.0);
+      for (size_t k = 0; k < nk; ++k)
+        tmp[i][j] += alpha * A[i][k] * B[k][j];
     }
-  for (int i = 0; i < _PB_NI; i++)
-    for (int j = 0; j < _PB_NL; j++) {
-      ARRAY_2D_ACCESS(D, i, j) *= beta;
-      for (int k = 0; k < _PB_NJ; ++k)
-        ARRAY_2D_ACCESS(D, i, j) +=
-            ARRAY_2D_ACCESS(tmp, i, k) * ARRAY_2D_ACCESS(C, k, j);
+  for (size_t i = 0; i < ni; i++)
+    for (size_t j = 0; j < nl; j++) {
+      D[i][j] *= beta;
+      for (size_t k = 0; k < nj; ++k)
+        D[i][j] += tmp[i][k] * C[k][j];
     }
 #pragma endscop
 #endif
