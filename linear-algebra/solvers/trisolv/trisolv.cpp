@@ -54,8 +54,7 @@ static void kernel_trisolv(size_t n,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  // p0.l0 == 0
-  Kokkos::parallel_for<usePolyOpt, "">(
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
       policy, KOKKOS_LAMBDA(const size_t i) {
         x(i) = b(i);
         for (size_t j = 0; j < i; j++)
