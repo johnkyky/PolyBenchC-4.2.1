@@ -59,11 +59,11 @@ static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
 
   Kokkos::parallel_for<usePolyOpt,
                        "p0.l0 == 0, p0.l0 == p2.l0, p0.u0 == p2.u0, p1.l0 == "
-                       "0, p1.l1 == 0, p1.u1 == p0.u0">(
+                       "0, p1.l1 == 0, p1.u1 == p0.u0, p1.u0 == n, n > 10">(
       "kernel", policy_1D,
       KOKKOS_LAMBDA(const size_t j) {
         mean(j) = SCALAR_VAL(0.0);
-        for (size_t i = 0; i < n; i++)
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(n); i++)
           mean(j) += data(i, j);
         mean(j) /= float_n;
       },
@@ -73,18 +73,16 @@ static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
       KOKKOS_LAMBDA(const size_t i) {
         for (long j = i; j < m; j++) {
           cov(i, j) = SCALAR_VAL(0.0);
-          for (long k = 0; k < n; k++)
+          for (long k = 0; k < KOKKOS_LOOP_BOUND(n); k++)
             cov(i, j) += data(k, i) * data(k, j);
           cov(i, j) /= (float_n - SCALAR_VAL(1.0));
           cov(j, i) = cov(i, j);
         }
       });
 #elif defined(POLYBENCH_KOKKOS)
-  const auto policy_1D = Kokkos::RangePolicy<>(0, m);
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
   const auto policy_2D_1 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, m});
-  const auto policy_2D_2 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {m, m});
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, m});
 
   Kokkos::parallel_for<usePolyOpt>(
       policy_1D, KOKKOS_LAMBDA(const size_t j) {
