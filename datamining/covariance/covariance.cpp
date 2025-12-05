@@ -84,7 +84,7 @@ static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, m});
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D, KOKKOS_LAMBDA(const size_t j) {
         mean(j) = SCALAR_VAL(0.0);
         for (size_t i = 0; i < n; i++)
@@ -92,11 +92,11 @@ static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
         mean(j) /= float_n;
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_2D_1,
       KOKKOS_LAMBDA(const size_t i, const size_t j) { data(i, j) -= mean(j); });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D, KOKKOS_LAMBDA(const size_t i) {
         for (size_t j = i; j < m; j++) {
           cov(i, j) = SCALAR_VAL(0.0);

@@ -31,11 +31,6 @@
 
 #if defined(POLYBENCH_KOKKOS)
 #include <Kokkos_Core.hpp>
-#if defined(POLYBENCH_USE_POLLY)
-constexpr bool usePolyOpt = Kokkos::usePolyOpt;
-#else
-constexpr bool usePolyOpt = not Kokkos::usePolyOpt;
-#endif
 #endif
 
 /* Array padding. By default, none is used. */
