@@ -54,37 +54,50 @@ static void print_array(int nr, int nq, int np,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-void kernel_doitgen(int nr, int nq, int np,
+void kernel_doitgen(size_t nr, size_t nq, size_t np,
                     ARRAY_3D_FUNC_PARAM(DATA_TYPE, A, NR, NQ, NP, nr, nq, np),
                     ARRAY_3D_FUNC_PARAM(DATA_TYPE, tmp, NR, NQ, NP, nr, nq, np),
                     ARRAY_2D_FUNC_PARAM(DATA_TYPE, C4, NP, NP, np, np),
                     ARRAY_1D_FUNC_PARAM(DATA_TYPE, sum, NP, np)) {
-#if defined(POLYBENCH_KOKKOS)
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_2D =
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {nr, nq});
+
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p0.l1 == 0">(
+      policy_2D, KOKKOS_LAMBDA(const size_t r, const size_t q) {
+        for (size_t p = 0; p < KOKKOS_LOOP_BOUND(np); p++) {
+          sum(p) = 0.0;
+          for (size_t s = 0; s < KOKKOS_LOOP_BOUND(np); s++)
+            sum(p) += A(r, q, s) * C4(s, p);
+        }
+        for (size_t p = 0; p < KOKKOS_LOOP_BOUND(np); p++)
+          A(r, q, p) = sum(p);
+      });
+#elif defined(POLYBENCH_KOKKOS)
   const auto policy_2D =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {nr, nq});
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_2D, KOKKOS_LAMBDA(const int r, const int q) {
-        for (int p = 0; p < np; p++) {
+  Kokkos::parallel_for(
+      policy_2D, KOKKOS_LAMBDA(const size_t r, const size_t q) {
+        for (size_t p = 0; p < np; p++) {
           tmp(r, q, p) = 0.0;
-          for (int s = 0; s < np; s++)
+          for (size_t s = 0; s < np; s++)
             tmp(r, q, p) += A(r, q, s) * ARRAY_2D_ACCESS(C4, s, p);
         }
-        for (int p = 0; p < np; p++)
+        for (size_t p = 0; p < np; p++)
           A(r, q, p) = tmp(r, q, p);
       });
 #else
 #pragma scop
-  for (int r = 0; r < _PB_NR; r++)
-    for (int q = 0; q < _PB_NQ; q++) {
-      for (int p = 0; p < _PB_NP; p++) {
-        ARRAY_1D_ACCESS(sum, p) = SCALAR_VAL(0.0);
-        for (int s = 0; s < _PB_NP; s++)
-          ARRAY_1D_ACCESS(sum, p) +=
-              ARRAY_3D_ACCESS(A, r, q, s) * ARRAY_2D_ACCESS(C4, s, p);
+  for (size_t r = 0; r < nr; r++)
+    for (size_t q = 0; q < nq; q++) {
+      for (size_t p = 0; p < np; p++) {
+        sum[p] = SCALAR_VAL(0.0);
+        for (size_t s = 0; s < np; s++)
+          sum[p] += A[r][q][s] * C4[s][p];
       }
-      for (int p = 0; p < _PB_NP; p++)
-        ARRAY_3D_ACCESS(A, r, q, p) = ARRAY_1D_ACCESS(sum, p);
+      for (size_t p = 0; p < np; p++)
+        A[r][q][p] = sum[p];
     }
 #pragma endscop
 #endif
