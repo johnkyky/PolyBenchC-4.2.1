@@ -74,10 +74,10 @@ static void kernel_gemm(size_t ni, size_t nj, int nk, DATA_TYPE alpha,
 
   Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
       policy, KOKKOS_LAMBDA(const size_t i) {
-        for (size_t j = 0; j < nj; j++)
+        for (size_t j = 0; j < KOKKOS_LOOP_BOUND(nj); j++)
           C(i, j) *= beta;
-        for (size_t k = 0; k < nk; k++) {
-          for (size_t j = 0; j < nj; j++)
+        for (size_t k = 0; k < KOKKOS_LOOP_BOUND(nk); k++) {
+          for (size_t j = 0; j < KOKKOS_LOOP_BOUND(nj); j++)
             C(i, j) += alpha * A(i, k) * B(k, j);
         }
       });
