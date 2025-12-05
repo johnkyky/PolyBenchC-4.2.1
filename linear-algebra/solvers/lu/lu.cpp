@@ -64,52 +64,52 @@ static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_lu(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
+static void kernel_lu(size_t n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < i; j++) {
-          for (int k = 0; k < j; k++) {
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p0.u0 == n">(
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < i; j++) {
+          for (size_t k = 0; k < j; k++) {
             A(i, j) -= A(i, k) * A(k, j);
           }
           A(i, j) /= A(j, j);
         }
-        for (int j = i; j < n; j++) {
-          for (int k = 0; k < i; k++) {
+        for (size_t j = i; j < KOKKOS_LOOP_BOUND(n); j++) {
+          for (size_t k = 0; k < i; k++) {
             A(i, j) -= A(i, k) * A(k, j);
           }
         }
       });
 #elif defined(POLYBENCH_KOKKOS)
-  for (int i = 0; i < N; i++) {
+  for (size_t i = 0; i < n; i++) {
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<Kokkos::Serial>(0, i), KOKKOS_LAMBDA(int j) {
-          for (int k = 0; k < j; k++) {
+        Kokkos::RangePolicy<Kokkos::Serial>(0, i), KOKKOS_LAMBDA(size_t j) {
+          for (size_t k = 0; k < j; k++) {
             A(i, j) -= A(i, k) * A(k, j);
           }
           A(i, j) /= A(j, j);
         });
 
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<Kokkos::Serial>(i, n), KOKKOS_LAMBDA(int j) {
-          for (int k = 0; k < i; k++) {
+        Kokkos::RangePolicy<Kokkos::Serial>(i, n), KOKKOS_LAMBDA(size_t j) {
+          for (size_t k = 0; k < i; k++) {
             A(i, j) -= A(i, k) * A(k, j);
           }
         });
   }
 #else
 #pragma scop
-  for (int i = 0; i < _PB_N; i++) {
-    for (int j = 0; j < i; j++) {
-      for (int k = 0; k < j; k++) {
+  for (size_t i = 0; i < n; i++) {
+    for (size_t j = 0; j < i; j++) {
+      for (size_t k = 0; k < j; k++) {
         A[i][j] -= A[i][k] * A[k][j];
       }
       A[i][j] /= A[j][j];
     }
-    for (int j = i; j < _PB_N; j++) {
-      for (int k = 0; k < i; k++) {
+    for (size_t j = i; j < n; j++) {
+      for (size_t k = 0; k < i; k++) {
         A[i][j] -= A[i][k] * A[k][j];
       }
     }
