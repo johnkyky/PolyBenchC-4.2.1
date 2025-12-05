@@ -72,9 +72,9 @@ static void kernel_trmm(int m, int n, DATA_TYPE alpha,
 #elif defined(POLYBENCH_KOKKOS)
 #else
 #pragma scop
-  for (size_t i = 0; i < _PB_M; i++)
-    for (size_t j = 0; j < _PB_N; j++) {
-      for (size_t k = i + 1; k < _PB_M; k++)
+  for (size_t i = 0; i < m; i++)
+    for (size_t j = 0; j < n; j++) {
+      for (size_t k = i + 1; k < m; k++)
         B[i][j] += A[k][i] * B[k][j];
       B[i][j] = alpha * B[i][j];
     }

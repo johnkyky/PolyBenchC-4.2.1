@@ -63,43 +63,26 @@ static void kernel_syrk(size_t n, size_t m, DATA_TYPE alpha, DATA_TYPE beta,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
       policy, KOKKOS_LAMBDA(const size_t i) {
-        for (size_t j = 0; j <= i; j++) {
+        for (size_t j = 0; j <= i; j++)
           C(i, j) *= beta;
-
-          DATA_TYPE tmp = SCALAR_VAL(0);
-
-          for (size_t k = 0; k < m; k++) {
-            tmp += alpha * A(i, k) * A(j, k);
-          }
-          C(i, j) += alpha * tmp;
+        for (size_t k = 0; k < m; k++) {
+          for (size_t j = 0; j <= i; j++)
+            C(i, j) += alpha * A(i, k) * A(j, k);
         }
       });
 
-  // Kokkos::parallel_for<usePolyOpt>(
-  //     policy, KOKKOS_LAMBDA(const size_t i) {
-  //       for (size_t j = 0; j <= i; j++)
-  //         C(i, j) *= beta;
-  //       for (size_t k = 0; k < m; k++) {
-  //         for (size_t jj = 0; jj <= i; jj++)
-  //           C(i, jj) += alpha * A(i, k) * A(jj, k);
-  //       }
-  //     });
 #elif defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
   Kokkos::parallel_for(
       policy, KOKKOS_LAMBDA(const size_t i) {
-        for (size_t j = 0; j <= i; j++) {
+        for (size_t j = 0; j <= i; j++)
           C(i, j) *= beta;
-
-          DATA_TYPE tmp = SCALAR_VAL(0);
-
-          for (size_t k = 0; k < m; k++) {
-            tmp += alpha * A(i, k) * A(j, k);
-          }
-          C(i, j) += alpha * tmp;
+        for (size_t k = 0; k < m; k++) {
+          for (size_t j = 0; j <= i; j++)
+            C(i, j) += alpha * A(i, k) * A(j, k);
         }
       });
 #else
