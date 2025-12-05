@@ -42,7 +42,7 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_durbin(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
+static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
                           ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
 #if defined(POLYBENCH_USE_POLLY)
   POLYBENCH_1D_ARRAY_DECL(z, DATA_TYPE, N, n);
@@ -56,20 +56,20 @@ static void kernel_durbin(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   *beta_ptr = SCALAR_VAL(1.0);
   *alpha_ptr = -r[0];
 
-  const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(1, n);
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int k) {
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(1, n);
+  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 1">(
+      policy_1D, KOKKOS_LAMBDA(const size_t k) {
         *beta_ptr = (1 - *alpha_ptr * *alpha_ptr) * *beta_ptr;
         DATA_TYPE sum = SCALAR_VAL(0.0);
-        for (int i = 0; i < k; i++) {
+        for (size_t i = 0; i < k; i++) {
           sum += r(k - i - 1) * y(i);
         }
         *alpha_ptr = -(r[k] + sum) / *beta_ptr;
 
-        for (int i = 0; i < k; i++) {
+        for (size_t i = 0; i < k; i++) {
           z[i] = y[i] + *alpha_ptr * y[k - i - 1];
         }
-        for (int i = 0; i < k; i++) {
+        for (size_t i = 0; i < k; i++) {
           y[i] = z[i];
         }
         y[k] = *alpha_ptr;
@@ -82,25 +82,26 @@ static void kernel_durbin(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   y(0) = -r(0);
   beta = SCALAR_VAL(1.0);
   alpha = -r[0];
-  for (int k = 1; k < n; k++) {
+  for (size_t k = 1; k < n; k++) {
     beta = (1 - alpha * alpha) * beta;
 
     DATA_TYPE sum = SCALAR_VAL(0.0);
-    Kokkos::parallel_reduce<usePolyOpt>(
-        Kokkos::RangePolicy<>(0, k),
-        KOKKOS_LAMBDA(int i, DATA_TYPE &partial_sum) {
+    Kokkos::parallel_reduce(
+        Kokkos::RangePolicy<Kokkos::Serial>(0, k),
+        KOKKOS_LAMBDA(size_t i, DATA_TYPE &partial_sum) {
           partial_sum += r(k - i - 1) * y(i);
         },
         sum);
 
     alpha = -(r(k) + sum) / beta;
 
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_for(
         Kokkos::RangePolicy<Kokkos::Serial>(0, k),
-        KOKKOS_LAMBDA(int i) { z(i) = y(i) + alpha * y(k - i - 1); });
+        KOKKOS_LAMBDA(size_t i) { z(i) = y(i) + alpha * y(k - i - 1); });
 
-    Kokkos::parallel_for<usePolyOpt>(
-        Kokkos::RangePolicy<>(0, k), KOKKOS_LAMBDA(int i) { y(i) = z(i); });
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<Kokkos::OpenMP>(0, k),
+        KOKKOS_LAMBDA(size_t i) { y(i) = z(i); });
 
     y(k) = alpha;
   }
@@ -110,23 +111,23 @@ static void kernel_durbin(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   DATA_TYPE beta;
   DATA_TYPE sum;
 
-#pragma scop
   y[0] = -r[0];
   beta = SCALAR_VAL(1.0);
   alpha = -r[0];
 
-  for (int k = 1; k < _PB_N; k++) {
+#pragma scop
+  for (size_t k = 1; k < n; k++) {
     beta = (1 - alpha * alpha) * beta;
     sum = SCALAR_VAL(0.0);
-    for (int i = 0; i < k; i++) {
+    for (size_t i = 0; i < k; i++) {
       sum += r[k - i - 1] * y[i];
     }
     alpha = -(r[k] + sum) / beta;
 
-    for (int i = 0; i < k; i++) {
+    for (size_t i = 0; i < k; i++) {
       z[i] = y[i] + alpha * y[k - i - 1];
     }
-    for (int i = 0; i < k; i++) {
+    for (size_t i = 0; i < k; i++) {
       y[i] = z[i];
     }
     y[k] = alpha;
