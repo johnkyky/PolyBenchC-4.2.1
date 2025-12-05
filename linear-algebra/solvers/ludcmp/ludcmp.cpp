@@ -73,25 +73,61 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x, N, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_ludcmp(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n),
+static void kernel_ludcmp(size_t n,
+                          ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n),
                           ARRAY_1D_FUNC_PARAM(DATA_TYPE, b, N, n),
                           ARRAY_1D_FUNC_PARAM(DATA_TYPE, x, N, n),
                           ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
-#if defined(POLYBENCH_KOKKOS)
-  const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < i; j++) {
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.u0 == n">(
+      "kernel", policy_1D,
+      KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < i; j++) {
           DATA_TYPE w = A(i, j);
-          for (int k = 0; k < j; k++) {
+          for (size_t k = 0; k < j; k++) {
             w -= A(i, k) * A(k, j);
           }
           A(i, j) = w / A(j, j);
         }
-        for (int j = i; j < n; j++) {
+        for (size_t j = i; j < KOKKOS_LOOP_BOUND(n); j++) {
           DATA_TYPE w = A(i, j);
-          for (int k = 0; k < i; k++) {
+          for (size_t k = 0; k < i; k++) {
+            w -= A(i, k) * A(k, j);
+          }
+          A(i, j) = w;
+        }
+      },
+      policy_1D,
+      KOKKOS_LAMBDA(const size_t i) {
+        DATA_TYPE w = b[i];
+        for (size_t j = 0; j < i; j++)
+          w -= A(i, j) * y(j);
+        y(i) = w;
+      },
+      policy_1D,
+      KOKKOS_LAMBDA(const size_t i) {
+        DATA_TYPE w = y(n - 1 - i);
+        for (size_t j = n - i; j < KOKKOS_LOOP_BOUND(n); j++)
+          w -= A(n - 1 - i, j) * x(j);
+        x(n - 1 - i) = w / A(n - 1 - i, n - 1 - i);
+      });
+#elif defined(POLYBENCH_KOKKOS)
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+
+  Kokkos::parallel_for(
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < i; j++) {
+          DATA_TYPE w = A(i, j);
+          for (size_t k = 0; k < j; k++) {
+            w -= A(i, k) * A(k, j);
+          }
+          A(i, j) = w / A(j, j);
+        }
+        for (size_t j = i; j < n; j++) {
+          DATA_TYPE w = A(i, j);
+          for (size_t k = 0; k < i; k++) {
             w -= A(i, k) * A(k, j);
           }
           A(i, j) = w;
@@ -99,50 +135,49 @@ static void kernel_ludcmp(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n),
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int i) {
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE w = b[i];
-        for (int j = 0; j < i; j++)
+        for (size_t j = 0; j < i; j++)
           w -= A(i, j) * y(j);
         y(i) = w;
       });
 
   Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int i) {
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE w = y(n - 1 - i);
-        for (int j = n - i; j < n; j++)
+        for (size_t j = n - i; j < n; j++)
           w -= A(n - 1 - i, j) * x(j);
         x(n - 1 - i) = w / A(n - 1 - i, n - 1 - i);
       });
 #else
-
 #pragma scop
-  for (int i = 0; i < _PB_N; i++) {
-    for (int j = 0; j < i; j++) {
+  for (size_t i = 0; i < n; i++) {
+    for (size_t j = 0; j < i; j++) {
       DATA_TYPE w = A[i][j];
-      for (int k = 0; k < j; k++) {
+      for (size_t k = 0; k < j; k++) {
         w -= A[i][k] * A[k][j];
       }
       A[i][j] = w / A[j][j];
     }
-    for (int j = i; j < _PB_N; j++) {
+    for (size_t j = i; j < n; j++) {
       DATA_TYPE w = A[i][j];
-      for (int k = 0; k < i; k++) {
+      for (size_t k = 0; k < i; k++) {
         w -= A[i][k] * A[k][j];
       }
       A[i][j] = w;
     }
   }
 
-  for (int i = 0; i < _PB_N; i++) {
+  for (size_t i = 0; i < n; i++) {
     DATA_TYPE w = b[i];
-    for (int j = 0; j < i; j++)
+    for (size_t j = 0; j < i; j++)
       w -= A[i][j] * y[j];
     y[i] = w;
   }
 
-  for (int i = _PB_N - 1; i >= 0; i--) {
+  for (size_t i = n - 1; i >= 0; i--) {
     DATA_TYPE w = y[i];
-    for (int j = i + 1; j < _PB_N; j++)
+    for (size_t j = i + 1; j < _PB_N; j++)
       w -= A[i][j] * x[j];
     x[i] = w / A[i][i];
   }
