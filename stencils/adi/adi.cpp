@@ -79,13 +79,14 @@ static void kernel_adi(size_t tsteps, size_t n,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(1, tsteps + 1);
 
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 1, p0.l0 < 10000000">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt,
+                       "p0.l0 == 1, p0.u0 < 1000000, n < 900000">(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
-        for (size_t i = 1; i < n - 1; i++) {
+        for (size_t i = 1; i < KOKKOS_LOOP_BOUND(n) - 1; i++) {
           v(0, i) = SCALAR_VAL(1.0);
           p(i, 0) = SCALAR_VAL(0.0);
           q(i, 0) = v(0, i);
-          for (size_t j = 1; j < n - 1; j++) {
+          for (size_t j = 1; j < KOKKOS_LOOP_BOUND(n) - 1; j++) {
             p(i, j) = -c / (a * p(i, j - 1) + b);
             q(i, j) = (-d * u(j, i - 1) +
                        (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * d) * u(j, i) -
@@ -94,16 +95,16 @@ static void kernel_adi(size_t tsteps, size_t n,
           }
 
           v(n - 1, i) = SCALAR_VAL(1.0);
-          for (size_t j = n - 2; j >= 1; j--) {
+          for (size_t j = KOKKOS_LOOP_BOUND(n) - 2; j >= 1; j--) {
             v(j, i) = p(i, j) * v(j + 1, i) + q(i, j);
           }
         }
         // Row Sweep
-        for (size_t i = 1; i < n - 1; i++) {
+        for (size_t i = 1; i < KOKKOS_LOOP_BOUND(n) - 1; i++) {
           u(i, 0) = SCALAR_VAL(1.0);
           p(i, 0) = SCALAR_VAL(0.0);
           q(i, 0) = u(i, 0);
-          for (size_t j = 1; j < n - 1; j++) {
+          for (size_t j = 1; j < KOKKOS_LOOP_BOUND(n) - 1; j++) {
             p(i, j) = -f / (d * p(i, j - 1) + e);
             q(i, j) = (-a * v(i - 1, j) +
                        (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * a) * v(i, j) -
@@ -111,18 +112,18 @@ static void kernel_adi(size_t tsteps, size_t n,
                       (d * p(i, j - 1) + e);
           }
           u(i, n - 1) = SCALAR_VAL(1.0);
-          for (size_t j = n - 2; j >= 1; j--) {
+          for (size_t j = KOKKOS_LOOP_BOUND(n) - 2; j >= 1; j--) {
             u(i, j) = p(i, j) * u(i, j + 1) + q(i, j);
           }
         }
       });
 
 #elif defined(POLYBENCH_KOKKOS)
-  const auto policy_1D = Kokkos::RangePolicy<>(1, n - 1);
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(1, n - 1);
 
   for (size_t t = 1; t <= tsteps; t++) {
     // Column Sweep
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_for(
         policy_1D, KOKKOS_LAMBDA(const size_t i) {
           v(0, i) = SCALAR_VAL(1.0);
           p(i, 0) = SCALAR_VAL(0.0);
@@ -162,8 +163,8 @@ static void kernel_adi(size_t tsteps, size_t n,
   }
 
 #else
-  for (size_t t = 1; t <= tsteps; t++) {
 #pragma scop
+  for (size_t t = 1; t <= tsteps; t++) {
     // Column Sweep
     for (size_t i = 1; i < n - 1; i++) {
       v[0][i] = SCALAR_VAL(1.0);
@@ -199,8 +200,8 @@ static void kernel_adi(size_t tsteps, size_t n,
         u[i][j] = p[i][j] * u[i][j + 1] + q[i][j];
       }
     }
-#pragma endscop
   }
+#pragma endscop
 #endif
 }
 
