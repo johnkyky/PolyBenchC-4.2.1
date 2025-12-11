@@ -57,19 +57,19 @@ static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   *alpha_ptr = -r[0];
 
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(1, n);
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 1">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 1">(
       policy_1D, KOKKOS_LAMBDA(const size_t k) {
         *beta_ptr = (1 - *alpha_ptr * *alpha_ptr) * *beta_ptr;
         DATA_TYPE sum = SCALAR_VAL(0.0);
-        for (size_t i = 0; i < k; i++) {
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
           sum += r(k - i - 1) * y(i);
         }
         *alpha_ptr = -(r[k] + sum) / *beta_ptr;
 
-        for (size_t i = 0; i < k; i++) {
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
           z[i] = y[i] + *alpha_ptr * y[k - i - 1];
         }
-        for (size_t i = 0; i < k; i++) {
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
           y[i] = z[i];
         }
         y[k] = *alpha_ptr;
@@ -87,7 +87,7 @@ static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
 
     DATA_TYPE sum = SCALAR_VAL(0.0);
     Kokkos::parallel_reduce(
-        Kokkos::RangePolicy<Kokkos::Serial>(0, k),
+        Kokkos::RangePolicy<Kokkos::OpenMP>(0, k),
         KOKKOS_LAMBDA(size_t i, DATA_TYPE &partial_sum) {
           partial_sum += r(k - i - 1) * y(i);
         },
@@ -96,7 +96,7 @@ static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
     alpha = -(r(k) + sum) / beta;
 
     Kokkos::parallel_for(
-        Kokkos::RangePolicy<Kokkos::Serial>(0, k),
+        Kokkos::RangePolicy<Kokkos::OpenMP>(0, k),
         KOKKOS_LAMBDA(size_t i) { z(i) = y(i) + alpha * y(k - i - 1); });
 
     Kokkos::parallel_for(
