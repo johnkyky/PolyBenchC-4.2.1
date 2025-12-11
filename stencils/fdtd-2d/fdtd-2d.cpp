@@ -85,9 +85,8 @@ static void kernel_fdtd_2d(size_t tmax, size_t nx, size_t ny,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(0, tmax);
 
-  Kokkos::parallel_for<
-      Kokkos::usePolyOpt,
-      "p0.l0 == 0, p0.u0 > 30, p0.u0 < 50000, ny < 100000, nx < 900000">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt,
+                       "p0.l0 == 0, p0.u0 < 50000, ny < 100000, nx < 900000">(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
         for (size_t j = 0; j < KOKKOS_LOOP_BOUND(ny); j++)
           ey(0, j) = _fict_(t);
