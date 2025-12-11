@@ -56,11 +56,11 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
                                                n)) {
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(0, tsteps + 1);
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0">(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
-        for (size_t i = 1; i < n - 1; i++) {
-          for (size_t j = 1; j < n - 1; j++) {
-            for (size_t k = 1; k < n - 1; k++) {
+        for (size_t i = 1; i < KOKKOS_LOOP_BOUND(n) - 1; i++) {
+          for (size_t j = 1; j < KOKKOS_LOOP_BOUND(n) - 1; j++) {
+            for (size_t k = 1; k < KOKKOS_LOOP_BOUND(n) - 1; k++) {
               B(i, j, k) = SCALAR_VAL(0.125) *
                                (A(i + 1, j, k) - SCALAR_VAL(2.0) * A(i, j, k) +
                                 A(i - 1, j, k)) +
@@ -74,9 +74,9 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
             }
           }
         }
-        for (size_t i = 1; i < n - 1; i++) {
-          for (size_t j = 1; j < n - 1; j++) {
-            for (size_t k = 1; k < n - 1; k++) {
+        for (size_t i = 1; i < KOKKOS_LOOP_BOUND(n) - 1; i++) {
+          for (size_t j = 1; j < KOKKOS_LOOP_BOUND(n) - 1; j++) {
+            for (size_t k = 1; k < KOKKOS_LOOP_BOUND(n) - 1; k++) {
               A(i, j, k) = SCALAR_VAL(0.125) *
                                (B(i + 1, j, k) - SCALAR_VAL(2.0) * B(i, j, k) +
                                 B(i - 1, j, k)) +
@@ -95,7 +95,7 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1, 1, 1}, {n - 1, n - 1, n - 1});
   for (size_t t = 1; t <= tsteps; t++) {
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_for(
         policy, KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {
           B(i, j, k) = SCALAR_VAL(0.125) *
                            (A(i + 1, j, k) - SCALAR_VAL(2.0) * A(i, j, k) +
@@ -108,7 +108,7 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
                             A(i, j, k - 1)) +
                        A(i, j, k);
         });
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_for(
         policy, KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {
           A(i, j, k) = SCALAR_VAL(0.125) *
                            (B(i + 1, j, k) - SCALAR_VAL(2.0) * B(i, j, k) +
@@ -123,8 +123,8 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
         });
   }
 #else
-  for (size_t t = 1; t <= tsteps; t++) {
 #pragma scop
+  for (size_t t = 1; t <= tsteps; t++) {
     for (size_t i = 1; i < n - 1; i++) {
       for (size_t j = 1; j < n - 1; j++) {
         for (size_t k = 1; k < n - 1; k++) {
@@ -157,8 +157,8 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
         }
       }
     }
-#pragma endscop
   }
+#pragma endscop
 #endif
 }
 
