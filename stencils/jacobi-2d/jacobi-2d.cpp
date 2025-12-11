@@ -52,14 +52,14 @@ static void kernel_jacobi_2d(size_t tsteps, size_t n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, N, N, n, n)) {
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(0, tsteps);
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0">(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
-        for (size_t i = 1; i < n - 1; i++)
-          for (size_t j = 1; j < n - 1; j++)
+        for (size_t i = 1; i < KOKKOS_LOOP_BOUND(n) - 1; i++)
+          for (size_t j = 1; j < KOKKOS_LOOP_BOUND(n) - 1; j++)
             B(i, j) = SCALAR_VAL(0.2) * (A(i, j) + A(i, j - 1) + A(i, 1 + j) +
                                          A(1 + i, j) + A(i - 1, j));
-        for (size_t i = 1; i < n - 1; i++)
-          for (size_t j = 1; j < n - 1; j++)
+        for (size_t i = 1; i < KOKKOS_LOOP_BOUND(n) - 1; i++)
+          for (size_t j = 1; j < KOKKOS_LOOP_BOUND(n) - 1; j++)
             A(i, j) = SCALAR_VAL(0.2) * (B(i, j) + B(i, j - 1) + B(i, 1 + j) +
                                          B(1 + i, j) + B(i - 1, j));
       });
@@ -67,7 +67,7 @@ static void kernel_jacobi_2d(size_t tsteps, size_t n,
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({1, 1}, {n - 1, n - 1}, {32, 32});
   for (size_t t = 0; t < tsteps; t++) {
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_for(
         policy, KOKKOS_LAMBDA(const size_t i, const int j) {
           B(i, j) = SCALAR_VAL(0.2) * (A(i, j) + A(i, j - 1) + A(i, 1 + j) +
                                        A(1 + i, j) + A(i - 1, j));
@@ -79,8 +79,8 @@ static void kernel_jacobi_2d(size_t tsteps, size_t n,
         });
   }
 #else
-  for (size_t t = 0; t < tsteps; t++) {
 #pragma scop
+  for (size_t t = 0; t < tsteps; t++) {
     for (size_t i = 1; i < n - 1; i++)
       for (size_t j = 1; j < n - 1; j++)
         B[i][j] = SCALAR_VAL(0.2) * (A[i][j] + A[i][j - 1] + A[i][1 + j] +
@@ -89,8 +89,8 @@ static void kernel_jacobi_2d(size_t tsteps, size_t n,
       for (size_t j = 1; j < n - 1; j++)
         A[i][j] = SCALAR_VAL(0.2) * (B[i][j] + B[i][j - 1] + B[i][1 + j] +
                                      B[1 + i][j] + B[i - 1][j]);
-#pragma endscop
   }
+#pragma endscop
 #endif
 }
 
