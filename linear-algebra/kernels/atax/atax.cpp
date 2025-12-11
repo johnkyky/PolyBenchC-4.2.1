@@ -58,7 +58,7 @@ static void kernel_atax(size_t m, size_t n,
   const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
   const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
 
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p1.l0 == 0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p1.l0 == 0">(
       "kernel", policy_1D_1, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; },
       policy_1D_2,
       KOKKOS_LAMBDA(const size_t i) {
@@ -72,14 +72,17 @@ static void kernel_atax(size_t m, size_t n,
 #elif defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; });
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; });
 
   for (size_t i = 0; i < m; i++) {
     DATA_TYPE tmp = SCALAR_VAL(0.0);
-    Kokkos::parallel_for<usePolyOpt>(
-        policy, KOKKOS_LAMBDA(const size_t i) { tmp += A(i, j) * x(j); });
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_reduce(
+        policy,
+        KOKKOS_LAMBDA(const size_t i, DATA_TYPE &local_tmp) {
+          local_tmp += A(i, j) * x(j);
+        },
+        tmp);
+    Kokkos::parallel_for(
         policy,
         KOKKOS_LAMBDA(const size_t i) { y(j) = y(j) + A(i, j) * tmp(i); });
   });
