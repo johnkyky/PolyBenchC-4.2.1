@@ -62,7 +62,7 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
+static void kernel_mvt(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
                        ARRAY_1D_FUNC_PARAM(DATA_TYPE, x2, N, n),
                        ARRAY_1D_FUNC_PARAM(DATA_TYPE, y_1, N, n),
                        ARRAY_1D_FUNC_PARAM(DATA_TYPE, y_2, N, n),
@@ -71,9 +71,9 @@ static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
   const auto policy_2D =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, n});
 
-  Kokkos::parallel_for<usePolyOpt,
-                       "p0.l0 == 0, p0.l1 == 0, p0.u0 == p0.u1, p0.l0 == "
-                       "p1.l0, p0.l1 == p1.l1, p1.u0 == p1.u1, p0.u0 == p1.u0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt,
+                       "p0.l0 == 0, p0.l1 == 0, p0.u0 == p0.u1, p1.l0 == 0, "
+                       "p1.l1 == 0, p1.u0 == p1.u1, p0.u0 == p1.u0">(
       "kernel", policy_2D,
       KOKKOS_LAMBDA(const size_t i, const size_t j) {
         x1(i) = x1(i) + A(i, j) * y_1(j);
@@ -86,11 +86,11 @@ static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
   const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>(
       {0, 0}, {n, n}, {32, 32});
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         x1(i) = x1(i) + A(i, j) * y_1(j);
       });
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         x2(i) = x2(i) + A(j, i) * y_2(j);
       });
@@ -98,14 +98,10 @@ static void kernel_mvt(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
 #pragma scop
   for (size_t i = 0; i < n; i++)
     for (size_t j = 0; j < n; j++)
-      ARRAY_1D_ACCESS(x1, i) =
-          ARRAY_1D_ACCESS(x1, i) +
-          ARRAY_2D_ACCESS(A, i, j) * ARRAY_1D_ACCESS(y_1, j);
+      x1[i] = x1[i] + A[i][j] * y_1[j];
   for (size_t i = 0; i < n; i++)
     for (size_t j = 0; j < n; j++)
-      ARRAY_1D_ACCESS(x2, i) =
-          ARRAY_1D_ACCESS(x2, i) +
-          ARRAY_2D_ACCESS(A, j, i) * ARRAY_1D_ACCESS(y_2, j);
+      x2[i] = x2[i] + A[j][i] * y_2[j];
 #pragma endscop
 #endif
 }
