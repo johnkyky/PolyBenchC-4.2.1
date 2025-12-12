@@ -92,8 +92,8 @@ static void kernel_heat_3d(size_t tsteps, size_t n,
         }
       });
 #elif defined(POLYBENCH_KOKKOS)
-  const auto policy =
-      Kokkos::MDRangePolicy<Kokkos::Rank<3>>({1, 1, 1}, {n - 1, n - 1, n - 1});
+  const auto policy = Kokkos::MDRangePolicy<Kokkos::Rank<3>>(
+      {1, 1, 1}, {n - 1, n - 1, n - 1}, {32, 32, 32});
   for (size_t t = 1; t <= tsteps; t++) {
     Kokkos::parallel_for(
         policy, KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {

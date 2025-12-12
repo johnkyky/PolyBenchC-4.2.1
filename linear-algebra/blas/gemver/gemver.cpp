@@ -101,8 +101,8 @@ static void kernel_gemver(size_t n, DATA_TYPE alpha, DATA_TYPE beta,
 
 #elif defined(POLYBENCH_KOKKOS)
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
-  const auto policy_2D =
-      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, n});
+  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>(
+      {0, 0}, {n, n}, {32, 32});
 
   Kokkos::parallel_for(
       "kernel", policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
