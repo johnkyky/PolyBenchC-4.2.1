@@ -48,8 +48,21 @@ static void kernel_seidel_2d(size_t tsteps, size_t n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(0, tsteps);
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p0.u0 < 10000, p0.l0 < p0.u0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt,
+                       "p0.l0 == 0, p0.u0 < 10000, p0.l0 < p0.u0">(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
+        for (size_t i = 1; i <= KOKKOS_LOOP_BOUND(n) - 2; i++)
+          for (size_t j = 1; j <= KOKKOS_LOOP_BOUND(n) - 2; j++)
+            A(i, j) = (A(i - 1, j - 1) + A(i - 1, j) + A(i - 1, j + 1) +
+                       A(i, j - 1) + A(i, j) + A(i, j + 1) + A(i + 1, j - 1) +
+                       A(i + 1, j) + A(i + 1, j + 1)) /
+                      SCALAR_VAL(9.0);
+      });
+#elif defined(POLYBENCH_KOKKOS)
+  const auto policy = Kokkos::RangePolicy<Kokkos::Serial>(0, tsteps);
+
+  Kokkos::parallel_for(
+      policy, KOKKOS_LAMBDA(const size_t t) {
         for (size_t i = 1; i <= n - 2; i++)
           for (size_t j = 1; j <= n - 2; j++)
             A(i, j) = (A(i - 1, j - 1) + A(i - 1, j) + A(i - 1, j + 1) +
@@ -57,17 +70,6 @@ static void kernel_seidel_2d(size_t tsteps, size_t n,
                        A(i + 1, j) + A(i + 1, j + 1)) /
                       SCALAR_VAL(9.0);
       });
-#elif defined(POLYBENCH_KOKKOS)
-  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Serial, Kokkos::Rank<2>>(
-      {1, 1}, {n - 1, n - 1});
-  for (size_t t = 0; t <= tsteps - 1; t++)
-    Kokkos::parallel_for(
-        policy_2D, KOKKOS_LAMBDA(const size_t i, const int j) {
-          A(i, j) = (A(i - 1, j - 1) + A(i - 1, j) + A(i - 1, j + 1) +
-                     A(i, j - 1) + A(i, j) + A(i, j + 1) + A(i + 1, j - 1) +
-                     A(i + 1, j) + A(i + 1, j + 1)) /
-                    SCALAR_VAL(9.0);
-        });
 #else
 #pragma scop
   for (size_t t = 0; t <= tsteps - 1; t++) {
