@@ -60,11 +60,11 @@ static void kernel_gesummv(size_t n, DATA_TYPE alpha, DATA_TYPE beta,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.u0 == n">(
       "kernel", policy, KOKKOS_LAMBDA(const size_t i) {
         tmp(i) = SCALAR_VAL(0.0);
         y(i) = SCALAR_VAL(0.0);
-        for (size_t j = 0; j < n; j++) {
+        for (size_t j = 0; j < KOKKOS_LOOP_BOUND(n); j++) {
           tmp(i) = A(i, j) * x(j) + tmp(i);
           y(i) = B(i, j) * x(j) + y(i);
         }
