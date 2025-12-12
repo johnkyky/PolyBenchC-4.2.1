@@ -75,9 +75,10 @@ static void kernel_3mm(size_t ni, size_t nj, size_t nk, size_t nl, size_t nm,
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {ni, nl});
 
   Kokkos::parallel_for<
-      usePolyOpt, "p0.l0 == 0, p0.l1 == 0, p1.l0 == 0, p1.l1 == 0, p2.l0 == 0, "
-                  "p2.l1 == 0, p0.u0 == p2.u0, p0.u1 == p1.u0, p1.u1 == p2.u1, "
-                  "p0.u0 > 10, p0.u1 > 10, p1.u1 > 10">(
+      Kokkos::usePolyOpt,
+      "p0.l0 == 0, p0.l1 == 0, p1.l0 == 0, p1.l1 == 0, p2.l0 == 0, "
+      "p2.l1 == 0, p0.u0 == p2.u0, p0.u1 == p1.u0, p1.u1 == p2.u1, "
+      "p0.u0 > 10, p0.u1 > 10, p1.u1 > 10">(
       "kernel", policy_2D_1,
       KOKKOS_LAMBDA(const size_t i, const size_t j) {
         E(i, j) = SCALAR_VAL(0.0);
@@ -98,11 +99,14 @@ static void kernel_3mm(size_t ni, size_t nj, size_t nk, size_t nl, size_t nm,
       });
 #elif defined(POLYBENCH_KOKKOS)
   const auto policy_2D_1 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nj});
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {ni, nj},
+                                                             {32, 32});
   const auto policy_2D_2 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {nj, nl});
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {nj, nl},
+                                                             {32, 32});
   const auto policy_2D_3 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nl});
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {ni, nl},
+                                                             {32, 32});
 
   Kokkos::parallel_for(
       policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
