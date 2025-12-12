@@ -77,7 +77,7 @@ static void kernel_symm(int m, int n, DATA_TYPE alpha, DATA_TYPE beta,
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {m, n});
 
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0, p0.l1 == 0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.l1 == 0">(
       policy, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         DATA_TYPE temp = 0;
         for (size_t k = 0; k < i; k++) {
@@ -87,21 +87,24 @@ static void kernel_symm(int m, int n, DATA_TYPE alpha, DATA_TYPE beta,
         C(i, j) = beta * C(i, j) + alpha * B(i, j) * A(i, i) + alpha * temp;
       });
 #elif defined(POLYBENCH_KOKKOS)
-  const auto policy = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {m, n});
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for(
-      policy, KOKKOS_LAMBDA(const size_t i, const size_t j) {
-        DATA_TYPE temp = 0;
-        for (size_t k = 0; k < i; k++) {
-          C(k, j) += alpha * B(i, j) * A(i, k);
-          temp += B(k, j) * A(i, k);
-        }
-        C(i, j) = beta * C(i, j) + alpha * B(i, j) * A(i, i) + alpha * temp;
-      });
+  DATA_TYPE temp2;
+  for (size_t i = 0; i < m; i++) {
+    Kokkos::parallel_for(
+        policy, KOKKOS_LAMBDA(const size_t j) {
+          temp2 = 0;
+          for (size_t k = 0; k < i; k++) {
+            C[k][j] += alpha * B[i][j] * A[i][k];
+            temp2 += B[k][j] * A[i][k];
+          }
+          C[i][j] = beta * C[i][j] + alpha * B[i][j] * A[i][i] + alpha * temp2;
+        });
+  }
 #else
 #pragma scop
   DATA_TYPE temp2;
-  for (size_t i = 0; i < m; i++)
+  for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
       temp2 = 0;
       for (size_t k = 0; k < i; k++) {
@@ -110,6 +113,7 @@ static void kernel_symm(int m, int n, DATA_TYPE alpha, DATA_TYPE beta,
       }
       C[i][j] = beta * C[i][j] + alpha * B[i][j] * A[i][i] + alpha * temp2;
     }
+  }
 #pragma endscop
 #endif
 }
