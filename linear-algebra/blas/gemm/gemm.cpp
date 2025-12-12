@@ -57,7 +57,7 @@ static void print_array(int ni, int nj,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_gemm(size_t ni, size_t nj, int nk, DATA_TYPE alpha,
+static void kernel_gemm(size_t ni, size_t nj, size_t nk, DATA_TYPE alpha,
                         DATA_TYPE beta,
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, NI, NJ, ni, nj),
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, NI, NK, ni, nk),
@@ -72,7 +72,7 @@ static void kernel_gemm(size_t ni, size_t nj, int nk, DATA_TYPE alpha,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, ni);
 
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0">(
       policy, KOKKOS_LAMBDA(const size_t i) {
         for (size_t j = 0; j < KOKKOS_LOOP_BOUND(nj); j++)
           C(i, j) *= beta;
