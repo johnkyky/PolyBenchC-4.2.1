@@ -73,7 +73,7 @@ static void kernel_2mm(size_t ni, size_t nj, size_t nk, size_t nl,
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, ni);
 
   Kokkos::parallel_for<
-      usePolyOpt,
+      Kokkos::usePolyOpt,
       "p0.l0 == 0, p1.l0 == 0, p0.u0 == p1.u0, p0.u0 > 10, 12 < nj">(
       "kernel", policy,
       KOKKOS_LAMBDA(const size_t i) {
@@ -93,9 +93,11 @@ static void kernel_2mm(size_t ni, size_t nj, size_t nk, size_t nl,
       });
 #elif defined(POLYBENCH_KOKKOS)
   const auto policy_2D_1 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nj});
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {ni, nj},
+                                                             {32, 32});
   const auto policy_2D_2 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {ni, nl});
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {ni, nl},
+                                                             {32, 32});
 
   /* D := alpha*A*B*C + beta*D */
   Kokkos::parallel_for(
