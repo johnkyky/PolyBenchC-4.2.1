@@ -68,7 +68,7 @@ static void kernel_syr2k(size_t n, size_t m, DATA_TYPE alpha, DATA_TYPE beta,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt, "p0.l0 == 0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0">(
       policy, KOKKOS_LAMBDA(const size_t i) {
         for (size_t j = 0; j <= i; j++)
           C(i, j) *= beta;
