@@ -66,7 +66,6 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
   DATA_TYPE a1, a2, a3, a4, a5, a6, a7, a8;
   DATA_TYPE b1, b2, c1, c2;
 
-#if defined(POLYBENCH_KOKKOS)
   k = (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) *
       (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) /
       (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * alpha * EXP_FUN(-alpha) -
@@ -79,12 +78,98 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
   b2 = -EXP_FUN(SCALAR_VAL(-2.0) * alpha);
   c1 = c2 = 1;
 
-  const auto policy_1D_1 = Kokkos::RangePolicy<>(0, w);
-  const auto policy_1D_2 = Kokkos::RangePolicy<>(0, h);
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, w);
+  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, h);
   const auto policy_2D_1 =
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {w, h});
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {w, h});
 
-  Kokkos::parallel_for<usePolyOpt>(
+  // Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0==0">(
+  //     "kernel", policy_1D_1, KOKKOS_LAMBDA(const size_t i) {
+  //       DATA_TYPE ym1 = SCALAR_VAL(0.0);
+  //       DATA_TYPE ym2 = SCALAR_VAL(0.0);
+  //       DATA_TYPE xm1 = SCALAR_VAL(0.0);
+  //       for (size_t j = 0; j < KOKKOS_LOOP_BOUND(h); j++) {
+  //         y1(i, j) = a1 * imgIn(i, j) + a2 * xm1 + b1 * ym1 + b2 * ym2;
+  //         xm1 = imgIn(i, j);
+  //         ym2 = ym1;
+  //         ym1 = y1(i, j);
+  //       }
+  //     });
+
+  Kokkos::parallel_for<
+      Kokkos::usePolyOpt,
+      "p0.l0==0, p1.l0==0, p2.l0==0, p2.l1==0, p3.l0==0, p4.l0==0, p5.l0==0, "
+      "p5.l1 == 0, p0.u0 == p1.u0, p2.u0 == p5.u0, p2.u1 == p5.u1, p3.u0 == "
+      "p4.u0, p0.u0==p2.u0, p3.u0==p2.u1, p0.u0==w, p3.u0==h">(
+      "kernel", policy_1D_1,
+      KOKKOS_LAMBDA(const size_t i) {
+        DATA_TYPE ym1 = SCALAR_VAL(0.0);
+        DATA_TYPE ym2 = SCALAR_VAL(0.0);
+        DATA_TYPE xm1 = SCALAR_VAL(0.0);
+        for (size_t j = 0; j < KOKKOS_LOOP_BOUND(h); j++) {
+          y1(i, j) = a1 * imgIn(i, j) + a2 * xm1 + b1 * ym1 + b2 * ym2;
+          xm1 = imgIn(i, j);
+          ym2 = ym1;
+          ym1 = y1(i, j);
+        }
+      },
+      policy_1D_1,
+      KOKKOS_LAMBDA(const size_t i) {
+        DATA_TYPE yp1 = SCALAR_VAL(0.0);
+        DATA_TYPE yp2 = SCALAR_VAL(0.0);
+        DATA_TYPE xp1 = SCALAR_VAL(0.0);
+        DATA_TYPE xp2 = SCALAR_VAL(0.0);
+        for (long long j = KOKKOS_LOOP_BOUND(h) - 1; j >= 0; j--) {
+          y2(i, j) = a3 * xp1 + a4 * xp2 + b1 * yp1 + b2 * yp2;
+          xp2 = xp1;
+          xp1 = imgIn(i, j);
+          yp2 = yp1;
+          yp1 = y2(i, j);
+        }
+      },
+      policy_2D_1,
+      KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        imgOut(i, j) = c1 * (y1(i, j) + y2(i, j));
+      },
+      policy_1D_2,
+      KOKKOS_LAMBDA(const size_t j) {
+        DATA_TYPE tm1 = SCALAR_VAL(0.0);
+        DATA_TYPE ym1 = SCALAR_VAL(0.0);
+        DATA_TYPE ym2 = SCALAR_VAL(0.0);
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(w); i++) {
+          y1(i, j) = a5 * imgOut(i, j) + a6 * tm1 + b1 * ym1 + b2 * ym2;
+          tm1 = imgOut(i, j);
+          ym2 = ym1;
+          ym1 = y1(i, j);
+        }
+      },
+      policy_1D_2,
+      KOKKOS_LAMBDA(const size_t j) {
+        DATA_TYPE tp1 = SCALAR_VAL(0.0);
+        DATA_TYPE tp2 = SCALAR_VAL(0.0);
+        DATA_TYPE yp1 = SCALAR_VAL(0.0);
+        DATA_TYPE yp2 = SCALAR_VAL(0.0);
+        for (long long i = KOKKOS_LOOP_BOUND(w) - 1; i >= 0; i--) {
+          y2(i, j) = a7 * tp1 + a8 * tp2 + b1 * yp1 + b2 * yp2;
+          tp2 = tp1;
+          tp1 = imgOut(i, j);
+          yp2 = yp1;
+          yp1 = y2(i, j);
+        }
+      },
+      policy_2D_1,
+      KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        imgOut(i, j) = c2 * (y1(i, j) + y2(i, j));
+      });
+#elif defined(POLYBENCH_KOKKOS)
+  const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, w);
+  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, h);
+  const auto policy_2D_1 =
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {w, h},
+                                                             {32, 32});
+
+  Kokkos::parallel_for(
       policy_1D_1, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE ym1 = SCALAR_VAL(0.0);
         DATA_TYPE ym2 = SCALAR_VAL(0.0);
@@ -97,13 +182,13 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D_1, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE yp1 = SCALAR_VAL(0.0);
         DATA_TYPE yp2 = SCALAR_VAL(0.0);
         DATA_TYPE xp1 = SCALAR_VAL(0.0);
         DATA_TYPE xp2 = SCALAR_VAL(0.0);
-        for (size_t j = h - 1; j >= 0; j--) {
+        for (long long j = h - 1; j >= 0; j--) {
           y2(i, j) = a3 * xp1 + a4 * xp2 + b1 * yp1 + b2 * yp2;
           xp2 = xp1;
           xp1 = imgIn(i, j);
@@ -112,12 +197,12 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         imgOut(i, j) = c1 * (y1(i, j) + y2(i, j));
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D_2, KOKKOS_LAMBDA(const size_t j) {
         DATA_TYPE tm1 = SCALAR_VAL(0.0);
         DATA_TYPE ym1 = SCALAR_VAL(0.0);
@@ -130,13 +215,13 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D_2, KOKKOS_LAMBDA(const size_t j) {
         DATA_TYPE tp1 = SCALAR_VAL(0.0);
         DATA_TYPE tp2 = SCALAR_VAL(0.0);
         DATA_TYPE yp1 = SCALAR_VAL(0.0);
         DATA_TYPE yp2 = SCALAR_VAL(0.0);
-        for (size_t i = w - 1; i >= 0; i--) {
+        for (long long i = w - 1; i >= 0; i--) {
           y2(i, j) = a7 * tp1 + a8 * tp2 + b1 * yp1 + b2 * yp2;
           tp2 = tp1;
           tp1 = imgOut(i, j);
@@ -145,24 +230,12 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
         }
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_2D_1, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         imgOut(i, j) = c2 * (y1(i, j) + y2(i, j));
       });
 #else
 #pragma scop
-  k = (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) *
-      (SCALAR_VAL(1.0) - EXP_FUN(-alpha)) /
-      (SCALAR_VAL(1.0) + SCALAR_VAL(2.0) * alpha * EXP_FUN(-alpha) -
-       EXP_FUN(SCALAR_VAL(2.0) * alpha));
-  a1 = a5 = k;
-  a2 = a6 = k * EXP_FUN(-alpha) * (alpha - SCALAR_VAL(1.0));
-  a3 = a7 = k * EXP_FUN(-alpha) * (alpha + SCALAR_VAL(1.0));
-  a4 = a8 = -k * EXP_FUN(SCALAR_VAL(-2.0) * alpha);
-  b1 = POW_FUN(SCALAR_VAL(2.0), -alpha);
-  b2 = -EXP_FUN(SCALAR_VAL(-2.0) * alpha);
-  c1 = c2 = 1;
-
   for (size_t i = 0; i < w; i++) {
     ym1 = SCALAR_VAL(0.0);
     ym2 = SCALAR_VAL(0.0);
