@@ -118,12 +118,18 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     "SHELL:-mllvm -polly-dot"
     # "SHELL:-mllvm -polly-opt-outer-coincidence=yes"
     # "SHELL:-mllvm -polly-parallel-force"
+
     "SHELL:-mllvm -polly-optimizer=pluto"
     "SHELL:-mllvm -polly-pluto-path=pluto"
+    "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile --nodiamond-tile --nointratileopt\""
+    # "SHELL:-mllvm -polly-pluto-args=\"--identity --notile\""
+
     "SHELL:-mllvm -polly-dependences-computeout=0"
-    "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter"
+    "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-remove-loop-bound-condition,polly-triangular-loop-fix,polly-remove-loop-versioning,polly-var-fusion,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter,polly-array-reg2mem"
+    
     # "SHELL:-mllvm -polly-kokkos-check-parallelism=false"
     "SHELL:-mllvm -polly-codegen-emit-rtc-print"
+    # "SHELL:-mllvm -polly-ast-print-accesses"
   )
 endif()
 
