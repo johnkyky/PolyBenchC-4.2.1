@@ -36,12 +36,14 @@ def parse_args():
     parser.add_argument("--nb_iteration", type=int, default=5,
                         help="Number of iterations for benchmarking ignoring "
                         "for verification")
-    parser.add_argument("--dataset", type=str,
-                        default="MINI", help="Dataset size")
+    parser.add_argument("--dataset", type=str, required=True,
+                        help="Dataset size")
     parser.add_argument("--cxx_compiler", type=str, required=True,
                         help="C++ compiler")
     parser.add_argument("--kokkos_install_dir", type=str, required=True,
                         help="Install directory for Kokkos")
+    parser.add_argument("--polybench_dir", type=str, required=True,
+                        help="Polybench directory")
     args = parser.parse_args()
     return args
 
@@ -299,7 +301,7 @@ def run_bench(kernel_dir,
 def main():
     args = parse_args()
 
-    polybench_dir = "/home/johnkyky/Documents/PolyBenchC-4.2.1"
+    polybench_dir = args.polybench_dir
     process_dir = "/tmp/polybench"
     build_std = os.path.join(process_dir, "build_std")
     build_kokkos = os.path.join(process_dir, "build_kokkos")
