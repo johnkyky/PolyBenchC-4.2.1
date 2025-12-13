@@ -61,9 +61,9 @@ static void kernel_adi(size_t tsteps, size_t n,
   DATA_TYPE mul1, mul2;
   DATA_TYPE a, b, c, d, e, f;
 
-  DX = SCALAR_VAL(1.0) / (DATA_TYPE)_PB_N;
-  DY = SCALAR_VAL(1.0) / (DATA_TYPE)_PB_N;
-  DT = SCALAR_VAL(1.0) / (DATA_TYPE)_PB_TSTEPS;
+  DX = SCALAR_VAL(1.0) / (DATA_TYPE)n;
+  DY = SCALAR_VAL(1.0) / (DATA_TYPE)n;
+  DT = SCALAR_VAL(1.0) / (DATA_TYPE)tsteps;
   B1 = SCALAR_VAL(2.0);
   B2 = SCALAR_VAL(1.0);
   mul1 = B1 * DT / (DX * DX);
@@ -80,7 +80,7 @@ static void kernel_adi(size_t tsteps, size_t n,
   const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(1, tsteps + 1);
 
   Kokkos::parallel_for<Kokkos::usePolyOpt,
-                       "p0.l0 == 1, p0.u0 < 1000000, n < 900000">(
+                       "p0.l0 == 1, p0.u0 > 100, p0.u0 < 1000000, n < 900000">(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
         for (size_t i = 1; i < KOKKOS_LOOP_BOUND(n) - 1; i++) {
           v(0, i) = SCALAR_VAL(1.0);
@@ -143,7 +143,7 @@ static void kernel_adi(size_t tsteps, size_t n,
         });
 
     // Row Sweep
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_for(
         policy_1D, KOKKOS_LAMBDA(const size_t i) {
           u(i, 0) = SCALAR_VAL(1.0);
           p(i, 0) = SCALAR_VAL(0.0);
