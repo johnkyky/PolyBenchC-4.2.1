@@ -105,7 +105,7 @@ static void kernel_cholesky(int n,
   }
 #else
 #pragma scop
-  for (int i = 0; i < _PB_N; i++) {
+  for (int i = 0; i < n; i++) {
     // j<i
     for (int j = 0; j < i; j++) {
       for (int k = 0; k < j; k++) {

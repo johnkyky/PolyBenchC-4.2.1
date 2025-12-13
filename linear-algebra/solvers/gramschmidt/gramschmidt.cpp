@@ -72,7 +72,7 @@ static void kernel_gramschmidt(int m, int n,
                                ARRAY_2D_FUNC_PARAM(DATA_TYPE, R, N, N, n, n),
                                ARRAY_2D_FUNC_PARAM(DATA_TYPE, Q, M, N, m, n)) {
 #if defined(POLYBENCH_USE_POLLY)
-  const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+  const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
   Kokkos::parallel_for<usePolyOpt>(
       policy_1D, KOKKOS_LAMBDA(const int k) {

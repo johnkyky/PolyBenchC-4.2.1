@@ -55,13 +55,55 @@ static void kernel_correlation(size_t m, size_t n, DATA_TYPE float_n,
                                ARRAY_1D_FUNC_PARAM(DATA_TYPE, stddev, M, m)) {
   DATA_TYPE eps = SCALAR_VAL(0.1);
 
-#if defined(POLYBENCH_KOKKOS)
+#if defined(POLYBENCH_USE_POLLY)
+  const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
+  const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m - 1);
+  const auto policy_2D =
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, m});
+
+  Kokkos::parallel_for<Kokkos::usePolyOpt>(
+      "kernel", policy_1D_1,
+      KOKKOS_LAMBDA(const size_t j) {
+        mean(j) = SCALAR_VAL(0.0);
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(n); i++)
+          mean(j) += data(i, j);
+        mean(j) /= float_n;
+      },
+      policy_1D_1,
+      KOKKOS_LAMBDA(const size_t j) {
+        stddev(j) = SCALAR_VAL(0.0);
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(n); i++)
+          stddev(j) += (data(i, j) - mean(j)) * (data(i, j) - mean(j));
+        stddev(j) /= float_n;
+        stddev(j) = SQRT_FUN(stddev(j));
+        /* The following in an inelegant but usual way to handle
+           near-zero std. dev. values, which below would cause a zero-
+           divide. */
+        stddev(j) = stddev(j) <= eps ? SCALAR_VAL(1.0) : stddev(j);
+      },
+      policy_2D,
+      KOKKOS_LAMBDA(const size_t i, const size_t j) {
+        data(i, j) -= mean(j);
+        data(i, j) /= SQRT_FUN(float_n) * stddev(j);
+      },
+      policy_1D_2,
+      KOKKOS_LAMBDA(const size_t i) {
+        corr(i, i) = SCALAR_VAL(1.0);
+        for (size_t j = i + 1; j < KOKKOS_LOOP_BOUND(m); j++) {
+          corr(i, j) = SCALAR_VAL(0.0);
+          for (size_t k = 0; k < KOKKOS_LOOP_BOUND(n); k++)
+            corr(i, j) += (data(k, i) * data(k, j));
+          corr(j, i) = corr(i, j);
+        }
+      });
+  corr(m - 1, m - 1) = SCALAR_VAL(1.0);
+#elif defined(POLYBENCH_KOKKOS)
 
   const auto policy_1D_1 = Kokkos::RangePolicy<>(0, m);
   const auto policy_1D_2 = Kokkos::RangePolicy<>(0, m - 1);
   const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {n, m});
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D_1, KOKKOS_LAMBDA(const size_t j) {
         mean(j) = SCALAR_VAL(0.0);
         for (size_t i = 0; i < n; i++)
@@ -69,7 +111,7 @@ static void kernel_correlation(size_t m, size_t n, DATA_TYPE float_n,
         mean(j) /= float_n;
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D_1, KOKKOS_LAMBDA(const size_t j) {
         stddev(j) = SCALAR_VAL(0.0);
         for (size_t i = 0; i < n; i++)
@@ -83,14 +125,14 @@ static void kernel_correlation(size_t m, size_t n, DATA_TYPE float_n,
       });
 
   /* Center and reduce the column vectors. */
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         data(i, j) -= mean(j);
         data(i, j) /= SQRT_FUN(float_n) * stddev(j);
       });
 
   /* Calculate the m * m correlation matrix. */
-  Kokkos::parallel_for<usePolyOpt>(
+  Kokkos::parallel_for(
       policy_1D_2, KOKKOS_LAMBDA(const size_t i) {
         corr(i, i) = SCALAR_VAL(1.0);
         for (size_t j = i + 1; j < m; j++) {
