@@ -64,12 +64,14 @@ static void kernel_trisolv(size_t n,
 #elif defined(POLYBENCH_KOKKOS)
   for (size_t i = 0; i < n; i++) {
     x(i) = b(i);
+    DATA_TYPE sum = 0;
     Kokkos::parallel_reduce(
         Kokkos::RangePolicy<Kokkos::OpenMP>(0, i),
         KOKKOS_LAMBDA(size_t j, DATA_TYPE &local_sum) {
           local_sum += L(i, j) * x(j);
         },
-        x(i));
+        sum);
+    x(i) -= sum;
     x(i) = x(i) / L(i, i);
   }
 #else
