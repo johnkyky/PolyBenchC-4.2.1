@@ -24,7 +24,7 @@
 #endif
 
 #ifdef SMALL_DATASET
-#define N 1056
+#define N 3056
 #endif
 
 #ifdef MEDIUM_DATASET
