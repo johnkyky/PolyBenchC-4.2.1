@@ -60,11 +60,11 @@ def display_row_line(verif):
 def display_row_title(verif, kernel):
     display_row_line(verif)
     if verif:
-        print((f"| {kernel.center(25)} | {"Standard".center(25)} | {
-              "Kokkos".center(25)} | {"Polly".center(25)} |"))
+        print((f"| {kernel.center(25)} | {'Standard'.center(25)} | {
+              'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
     else:
-        print((f"| {kernel.center(25)} | {"Kokkos".center(25)} | {
-              "Polly".center(25)} |"))
+        print((f"| {kernel.center(25)} | {'Kokkos'.center(25)} | {
+              'Polly'.center(25)} |"))
     display_row_line(verif)
 
 
