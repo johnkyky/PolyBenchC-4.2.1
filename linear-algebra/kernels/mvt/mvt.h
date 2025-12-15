@@ -24,19 +24,19 @@
 #endif
 
 #ifdef SMALL_DATASET
-#define N 556
+#define N 1056
 #endif
 
 #ifdef MEDIUM_DATASET
-#define N 1024
+#define N 5224
 #endif
 
 #ifdef LARGE_DATASET
-#define N 10028
+#define N 20028
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define N 15096
+#define N 40096
 #endif
 
 #endif /* !(N) */
