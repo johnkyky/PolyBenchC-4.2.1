@@ -32,11 +32,11 @@
 #endif
 
 #ifdef LARGE_DATASET
-#define N 7028
+#define N 10028
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define N 14096
+#define N 15096
 #endif
 
 #endif /* !(N) */
