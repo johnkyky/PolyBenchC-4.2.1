@@ -60,11 +60,9 @@ def display_row_line(verif):
 def display_row_title(verif, kernel):
     display_row_line(verif)
     if verif:
-        print((f"| {kernel.center(25)} | {'Standard'.center(25)} | {
-              'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
+        print((f"| {kernel.center(25)} | {'Standard'.center(25)} | {'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
     else:
-        print((f"| {kernel.center(25)} | {'Kokkos'.center(25)} | {
-              'Polly'.center(25)} |"))
+        print((f"| {kernel.center(25)} | {'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
     display_row_line(verif)
 
 
@@ -75,13 +73,10 @@ def display_row_data(verif,
                      time_polly,
                      check_str):
     if verif:
-        print((f"| {kernel.center(25)} | {str(time_std).center(25)} | {
-              str(time_kokkos).center(25)} | {str(time_polly).center(25)} | {
-            check_str.center(25)} |"))
+        print((f"| {kernel.center(25)} | {str(time_std).center(25)} | {str(time_kokkos).center(25)} | {str(time_polly).center(25)} | {check_str.center(25)} |"))
         display_row_line(verif)
     else:
-        print((f"| {str(kernel).center(25)} | {str(time_kokkos).center(25)} | {
-              str(time_polly).center(25)} |"))
+        print((f"| {str(kernel).center(25)} | {str(time_kokkos).center(25)} | {str(time_polly).center(25)} |"))
         display_row_line(verif)
 
 
@@ -90,21 +85,13 @@ def display_row_data_bench(kernel,
                            statistics_polly):
     avg_k, med_k, std_dev_k, var_k, min_k, max_k = statistics_kokkos
     avg_p, med_p, std_dev_p, var_p, min_p, max_p = statistics_polly
-    print((f"| {COLOR[GREEN]}{str(kernel).center(25)}{COLOR[NO_COLOR]} | {
-        "".center(25)} | {"".center(25)} |"))
-    print((f"| {"average".center(25)} | {str(f"{avg_k:,.1f}").center(25)} | {
-          str(f"{avg_p:,.1f}").center(25)} |"))
-    print((f"| {"median".center(25)} | {str(f"{med_k:,.1f}").center(25)} | {
-          str(f"{med_p:,.1f}").center(25)} |"))
-    print((f"| {"standard deviation".center(25)} | {str(f"{
-        std_dev_k:,.1f}").center(25)} | {
-        str(f"{std_dev_p:,.1f}").center(25)} |"))
-    print((f"| {"variance".center(25)} | {str(f"{var_k:,.1f}").center(25)} | {
-          str(f"{var_p:,.1f}").center(25)} |"))
-    print((f"| {"minimum".center(25)} | {str(f"{min_k:,.1f}").center(25)} | {
-          str(f"{min_p:,.1f}").center(25)} |"))
-    print((f"| {"max".center(25)} | {str(f"{max_k:,.1f}").center(25)} | {
-          str(f"{max_p:,.1f}").center(25)} |"))
+    print((f"| {COLOR[GREEN]}{str(kernel).center(25)}{COLOR[NO_COLOR]} | {''.center(25)} | {''.center(25)} |"))
+    print((f"| {'average'.center(25)} | {str(f'{avg_k:,.1f}').center(25)} | {str(f'{avg_p:,.1f}').center(25)} |"))
+    print((f"| {'median'.center(25)} | {str(f'{med_k:,.1f}').center(25)} | {str(f'{med_p:,.1f}').center(25)} |"))
+    print((f"| {'standard deviation'.center(25)} | {str(f'{std_dev_k:,.1f}').center(25)} | {str(f'{std_dev_p:,.1f}').center(25)} |"))
+    print((f"| {'variance'.center(25)} | {str(f'{var_k:,.1f}').center(25)} | {str(f'{var_p:,.1f}').center(25)} |"))
+    print((f"| {'minimum'.center(25)} | {str(f'{min_k:,.1f}').center(25)} | {str(f'{min_p:,.1f}').center(25)} |"))
+    print((f"| {'max'.center(25)} | {str(f'{max_k:,.1f}').center(25)} | {str(f'{max_p:,.1f}').center(25)} |"))
     display_row_line(False)
 
 
@@ -190,40 +177,35 @@ def generate_build_file(polybench_dir,
     cmake_command_base = (
         f"cmake -S {polybench_dir} "
         f"-DCMAKE_CXX_COMPILER={cxx_compiler} "
-        "-DCMAKE_BUILD_TYPE=Release "
-        "-DPB_CYCLE_MONITORING=ON "
+        f"-DCMAKE_BUILD_TYPE=Release "
+        f"-DPB_CYCLE_MONITORING=ON "
         f"-DPB_DUMP_ARRAYS={print_output} "
         f"-DPB_DATASET_SIZE={dataset} ")
 
     # build standard version
     if verif:
-        print(f"{COLOR[GREEN]}Building standard version{
-              COLOR[NO_COLOR]}\r", end="")
+        print(f"{COLOR[GREEN]}Building standard version{COLOR[NO_COLOR]}\r", end="")
         cmake_command_standard = cmake_command_base + f"-B {build_std}"
         run_command(cmake_command_standard, os.path.join(
             output_dir, "cmake_standard.log"))
 
     # build kokkos version
-    print(f"\r\033[K\r{COLOR[GREEN]}Building Kokkos version{
-          COLOR[NO_COLOR]}", end="")
-    cmake_command_kokkos = cmake_command_base + (f"-B {
-        build_kokkos} -DPB_KOKKOS=ON "
-        f"-DPB_KOKKOS_DIR={
-        kokkos_install_dir} "
-        "-DKokkos_ENABLE_SERIAL=ON "
-        "-DKokkos_ENABLE_OPENMP=ON")
+    print(f"\r\033[K\r{COLOR[GREEN]}Building Kokkos version{COLOR[NO_COLOR]}", end="")
+    cmake_command_kokkos = cmake_command_base + (f"-B "
+        f"{build_kokkos} -DPB_KOKKOS=ON "
+        f"-DPB_KOKKOS_DIR={kokkos_install_dir} "
+        f"-DKokkos_ENABLE_SERIAL=ON "
+        f"-DKokkos_ENABLE_OPENMP=ON")
     run_command(cmake_command_kokkos, os.path.join(
         output_dir, "cmake_kokkos.log"))
 
     # build polly version
-    print(f"\r\033[K\r{COLOR[GREEN]}Building Polly version{
-          COLOR[NO_COLOR]}\r", end="")
+    print(f"\r\033[K\r{COLOR[GREEN]}Building Polly version{COLOR[NO_COLOR]}\r", end="")
     cmake_command_polly = cmake_command_base + (f"-B {build_polly} "
-                                                "-DPB_KOKKOS=ON "
-                                                f"-DPB_KOKKOS_DIR={
-                                                    kokkos_install_dir} "
-                                                "-DPB_USE_POLLY=ON "
-                                                "-DKokkos_ENABLE_SERIAL=ON")
+                                                f"-DPB_KOKKOS=ON "
+                                                f"-DPB_KOKKOS_DIR={kokkos_install_dir} "
+                                                f"-DPB_USE_POLLY=ON "
+                                                f"-DKokkos_ENABLE_SERIAL=ON")
     run_command(cmake_command_polly, os.path.join(
         output_dir, "cmake_polly.log"))
 
@@ -241,13 +223,11 @@ def run_verif(kernel_dir,
                                (build_kokkos, "kokkos"),
                                (build_polly, "polly")]:
             os.chdir(build)
-            print(f"{COLOR[YELLOW]}Building {kernel} {
-                version} version{COLOR[NO_COLOR]}\r", end="")
+            print(f"{COLOR[YELLOW]}Building {kernel} {version} version{COLOR[NO_COLOR]}\r", end="")
             make_command = f"make -j {kernel}"
             run_command(make_command, os.path.join(
                 kernel_output_path, f"{kernel}_{version}.compile"))
-            print(f"{COLOR[YELLOW]}\rRunning {kernel} {
-                version} version{COLOR[NO_COLOR]}\r", end="")
+            print(f"{COLOR[YELLOW]}\rRunning {kernel} {version} version{COLOR[NO_COLOR]}\r", end="")
             exec_command = f"{ARGS_ENV} {build}/{kernel_dir}/{kernel}/{kernel}"
             # time.sleep(0.3)
             run_command(exec_command,
@@ -278,17 +258,13 @@ def run_bench(kernel_dir,
         for build, version in [(build_kokkos, "kokkos"),
                                (build_polly, "polly")]:
             os.chdir(build)
-            print(f"\r\033[K{COLOR[YELLOW]}Building {kernel} {
-                  version} version{COLOR[NO_COLOR]}", end="")
+            print(f"\r\033[K{COLOR[YELLOW]}Building {kernel} {version} version{COLOR[NO_COLOR]}", end="")
             make_command = f"make -j {kernel}"
             run_command(make_command, os.path.join(
                 kernel_output_path, f"{kernel}_{version}.compile"))
             for i in range(nb_iteration):
-                print(f"\r\033[K{COLOR[YELLOW]}Running {kernel} {
-                    version} version (iteration {i+1}/{
-                    nb_iteration}){COLOR[NO_COLOR]}", end="")
-                exec_command = f"{ARGS_ENV} {
-                    build}/{kernel_dir}/{kernel}/{kernel}"
+                print(f"\r\033[K{COLOR[YELLOW]}Running {kernel} {version} version (iteration {i+1}/{nb_iteration}){COLOR[NO_COLOR]}", end="")
+                exec_command = f"{ARGS_ENV} {build}/{kernel_dir}/{kernel}/{kernel}"
 
                 time_file = os.path.join(kernel_output_path,
                                          f"{kernel}_{version}.time")
@@ -308,10 +284,7 @@ def main():
     build_polly = os.path.join(process_dir, "build_polly")
     output_dir = os.path.join(process_dir, "output")
 
-    print(f"Run {f"benchmark {args.nb_iteration} iterations" if not args.verif
-                 else "verif"}\nCompiler : {args.cxx_compiler}\nKokkos : {
-        args.kokkos_install_dir}\nDataset : {args.dataset}\nOutpu directory : {
-        process_dir}")
+    print(f"Run {f'benchmark {args.nb_iteration} iterations' if not args.verif else 'verif'}\nCompiler : {args.cxx_compiler}\nKokkos : {args.kokkos_install_dir}\nDataset : {args.dataset}\nOutpu directory : {process_dir}")
 
     if os.path.exists(process_dir):
         shutil.rmtree(process_dir)
@@ -320,6 +293,17 @@ def main():
     os.makedirs(build_kokkos, exist_ok=True)
     os.makedirs(build_polly, exist_ok=True)
 
+    # datasets = {
+    #     "datamining": ["correlation", "covariance"],
+    #     "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
+    #                                "mvt"],
+    #     "linear-algebra/solvers": ["cholesky", "durbin", "gramschmidt", "lu",
+    #                                "ludcmp", "trisolv"],
+    #     "medley": ["deriche", "floyd-warshall", "nussinov"],
+    #     "stencils": ["adi", "fdtd-2d", "heat-3d", "jacobi-1d", "jacobi-2d",
+    #                  "seidel-2d"],
+    # }
+
     datasets = {
         # "datamining": ["correlation", "covariance"],
         # "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
@@ -327,8 +311,7 @@ def main():
         # "linear-algebra/solvers": ["cholesky", "durbin", "gramschmidt", "lu",
         #                            "ludcmp", "trisolv"],
         # "medley": ["deriche", "floyd-warshall", "nussinov"],
-        "stencils": ["adi", "fdtd-2d", "heat-3d", "jacobi-1d", "jacobi-2d",
-                     "seidel-2d"],
+        "stencils": ["heat-3d", "jacobi-1d", "jacobi-2d"],
     }
 
     generate_build_file(polybench_dir, output_dir,
