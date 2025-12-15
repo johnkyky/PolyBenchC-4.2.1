@@ -28,35 +28,35 @@
 #endif
 
 #ifdef SMALL_DATASET
-#define NI 128
-#define NJ 136
-#define NK 144
-#define NL 152
-#define NM 168
+#define NI 528
+#define NJ 536
+#define NK 544
+#define NL 552
+#define NM 568
 #endif
 
 #ifdef MEDIUM_DATASET
-#define NI 512
-#define NJ 528
-#define NK 544
-#define NL 560
-#define NM 576
+#define NI 1012
+#define NJ 1028
+#define NK 1044
+#define NL 1060
+#define NM 1076
 #endif
 
 #ifdef LARGE_DATASET
-#define NI 1024
-#define NJ 1048
-#define NK 1072
-#define NL 1096
-#define NM 1120
+#define NI 5024
+#define NJ 5048
+#define NK 5072
+#define NL 5096
+#define NM 5120
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define NI 2048
-#define NJ 2080
-#define NK 2112
-#define NL 2144
-#define NM 2176
+#define NI 10048
+#define NJ 10080
+#define NK 10112
+#define NL 10144
+#define NM 10176
 #endif
 
 #endif /* !(NI NJ NK NL NM) */

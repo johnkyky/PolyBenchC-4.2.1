@@ -25,23 +25,23 @@
 #endif
 
 #ifdef SMALL_DATASET
-#define M 128
-#define N 136
+#define M 528
+#define N 536
 #endif
 
 #ifdef MEDIUM_DATASET
-#define M 512
-#define N 528
+#define M 1012
+#define N 1028
 #endif
 
 #ifdef LARGE_DATASET
-#define M 1024
-#define N 1048
+#define M 5024
+#define N 5048
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define M 2048
-#define N 2080
+#define M 10048
+#define N 10080
 #endif
 
 #endif /* !(M N) */
