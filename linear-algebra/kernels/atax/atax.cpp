@@ -86,7 +86,7 @@ static void kernel_atax(size_t m, size_t n,
     tmp(i) = local;
     Kokkos::parallel_for(
         policy,
-        KOKKOS_LAMBDA(const size_t i) { y(j) = y(j) + A(i, j) * tmp(i); });
+        KOKKOS_LAMBDA(const size_t j) { y(j) = y(j) + A(i, j) * tmp(i); });
   });
 #else
 #pragma scop
