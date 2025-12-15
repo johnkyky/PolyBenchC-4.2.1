@@ -121,7 +121,7 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
 
     "SHELL:-mllvm -polly-optimizer=pluto"
     # "SHELL:-mllvm -polly-pluto-path=/home/battiston/Phd/pluto/install/bin/pluto"
-    "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile --nodiamond-tile --nointratileopt\""
+    "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile\""
     # "SHELL:-mllvm -polly-pluto-args=\"--identity --notile\""
 
     "SHELL:-mllvm -polly-dependences-computeout=0"
