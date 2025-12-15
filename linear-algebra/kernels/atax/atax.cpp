@@ -75,13 +75,15 @@ static void kernel_atax(size_t m, size_t n,
   Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; });
 
   for (size_t i = 0; i < m; i++) {
-    DATA_TYPE tmp = SCALAR_VAL(0.0);
+    tmp(i) = SCALAR_VAL(0.0);
+    DATA_TYPE local = SCALAR_VAL(0.0);
     Kokkos::parallel_reduce(
         policy,
-        KOKKOS_LAMBDA(const size_t i, DATA_TYPE &local_tmp) {
+        KOKKOS_LAMBDA(const size_t j, DATA_TYPE &local_tmp) {
           local_tmp += A(i, j) * x(j);
         },
-        tmp);
+        local);
+    tmp(i) = local;
     Kokkos::parallel_for(
         policy,
         KOKKOS_LAMBDA(const size_t i) { y(j) = y(j) + A(i, j) * tmp(i); });
