@@ -40,7 +40,7 @@
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define TSTEPS 500
+#define TSTEPS 250
 #define N 1024
 #endif
 
