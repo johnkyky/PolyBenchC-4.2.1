@@ -89,6 +89,7 @@ static void kernel_syr2k(size_t n, size_t m, DATA_TYPE alpha, DATA_TYPE beta,
             C(i, j) += A(j, k) * alpha * B(i, k) + B(j, k) * alpha * A(i, k);
           }
       });
+#else
 #pragma scop
   for (size_t i = 0; i < n; i++) {
     for (size_t j = 0; j <= i; j++)
