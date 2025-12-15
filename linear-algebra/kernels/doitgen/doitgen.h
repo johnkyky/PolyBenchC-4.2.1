@@ -26,27 +26,27 @@
 #endif
 
 #ifdef SMALL_DATASET
-#define NQ 532
-#define NR 540
-#define NP 548
+#define NQ 132
+#define NR 140
+#define NP 148
 #endif
 
 #ifdef MEDIUM_DATASET
-#define NQ 1128
-#define NR 1136
-#define NP 1144
+#define NQ 428
+#define NR 436
+#define NP 444
 #endif
 
 #ifdef LARGE_DATASET
-#define NQ 5256
-#define NR 5264
-#define NP 5272
+#define NQ 856
+#define NR 864
+#define NP 872
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define NQ 1012
-#define NR 1020
-#define NP 1028
+#define NQ 1212
+#define NR 1220
+#define NP 1228
 #endif
 
 #endif /* !(NQ NR NP) */
