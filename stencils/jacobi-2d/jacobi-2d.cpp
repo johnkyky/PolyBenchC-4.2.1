@@ -72,7 +72,7 @@ static void kernel_jacobi_2d(size_t tsteps, size_t n,
           B(i, j) = SCALAR_VAL(0.2) * (A(i, j) + A(i, j - 1) + A(i, 1 + j) +
                                        A(1 + i, j) + A(i - 1, j));
         });
-    Kokkos::parallel_for<usePolyOpt>(
+    Kokkos::parallel_for(
         policy, KOKKOS_LAMBDA(const size_t i, const int j) {
           A(i, j) = SCALAR_VAL(0.2) * (B(i, j) + B(i, j - 1) + B(i, 1 + j) +
                                        B(1 + i, j) + B(i - 1, j));
