@@ -122,7 +122,7 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     "SHELL:-mllvm -polly-optimizer=pluto"
     # "SHELL:-mllvm -polly-pluto-path=/home/battiston/Phd/pluto/install/bin/pluto"
     "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile\""
-    # "SHELL:-mllvm -polly-pluto-args=\"--identity --notile\""
+    # "SHELL:-mllvm -polly-pluto-args=\"--parallel --identity\""
 
     "SHELL:-mllvm -polly-dependences-computeout=0"
     "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-remove-loop-bound-condition,polly-triangular-loop-fix,polly-remove-loop-versioning,polly-var-fusion,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter,polly-array-reg2mem"
