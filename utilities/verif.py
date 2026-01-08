@@ -303,7 +303,7 @@ def main():
     output_dir = os.path.join(process_dir, "output")
 
     print(f"Run {f'benchmark {args.nb_iteration} iterations' if not args.verif else 'verif'}\nCompiler : {
-          args.cxx_compiler}\nKokkos : {args.kokkos_install_dir}\nDataset : {args.dataset}\nOutpu directory : {process_dir}")
+          args.cxx_compiler}\nKokkos : {args.kokkos_install_dir}\nDataset : {args.dataset}\nOutput directory : {process_dir}")
 
     if os.path.exists(process_dir):
         shutil.rmtree(process_dir)
