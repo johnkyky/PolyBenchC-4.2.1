@@ -314,6 +314,8 @@ def main():
 
     # datasets = {
     #     "datamining": ["correlation", "covariance"],
+    #     "linear-algebra/blas": ["gemm", "gemver", "gesummv", "symm", "syr2k",
+    #                                "syrk", "trmm"],
     #     "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
     #                                "mvt"],
     #     "linear-algebra/solvers": ["cholesky", "durbin", "gramschmidt", "lu",
