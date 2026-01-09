@@ -139,7 +139,7 @@ def do_statistics(file):
         values = [int(ligne.strip()) for ligne in fichier]
     average = statistics.mean(values)
     median = statistics.median(values)
-    standard_deviation = statistics.stdev(values)
+    standard_deviation = statistics.stdev(values) if len(values) != 1 else 0
     minimum = min(values)
     maximum = max(values)
     return (average, median, standard_deviation, minimum, maximum)
