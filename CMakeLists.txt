@@ -129,6 +129,7 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     
     # "SHELL:-mllvm -polly-kokkos-check-parallelism=false"
     "SHELL:-mllvm -polly-codegen-emit-rtc-print"
+    "SHELL:-mllvm -polly-codegen-emit-params-print"
     # "SHELL:-mllvm -polly-ast-print-accesses"
   )
 endif()
