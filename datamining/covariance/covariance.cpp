@@ -57,9 +57,9 @@ static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
   const auto policy_2D =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {n, m});
 
-  Kokkos::parallel_for<usePolyOpt,
-                       "p0.l0 == 0, p0.l0 == p2.l0, p0.u0 == p2.u0, p1.l0 == "
-                       "0, p1.l1 == 0, p1.u1 == p0.u0, p1.u0 == n, n > 10">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0. == p2., p0.l0 == 0, p0.u0 == m,"
+                                           "p1.l == 0, p1.u0 == n, p1.u1 == m,"
+                                           "n > 10">(
       "kernel", policy_1D,
       KOKKOS_LAMBDA(const size_t j) {
         mean(j) = SCALAR_VAL(0.0);

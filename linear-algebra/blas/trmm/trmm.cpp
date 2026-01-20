@@ -69,8 +69,7 @@ static void kernel_trmm(size_t m, size_t n, DATA_TYPE alpha,
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {m, n});
 
-  Kokkos::parallel_for<Kokkos::usePolyOpt,
-                       "p0.l0 == 0, p0.l1 == 0, p0.u0 == m">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l == 0, p0.u0 == m">(
       policy, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         for (size_t k = i + 1; k < KOKKOS_LOOP_BOUND(m); k++)
           B(i, j) += A(k, i) * B(k, j);
