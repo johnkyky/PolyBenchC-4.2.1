@@ -89,16 +89,15 @@ static void kernel_symm(int m, int n, DATA_TYPE alpha, DATA_TYPE beta,
 #elif defined(POLYBENCH_KOKKOS)
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  DATA_TYPE temp2;
   for (size_t i = 0; i < m; i++) {
     Kokkos::parallel_for(
         policy, KOKKOS_LAMBDA(const size_t j) {
-          temp2 = 0;
+          DATA_TYPE temp2 = 0;
           for (size_t k = 0; k < i; k++) {
-            C[k][j] += alpha * B[i][j] * A[i][k];
-            temp2 += B[k][j] * A[i][k];
+            C(k, j) += alpha * B(i, j) * A(i, k);
+            temp2 += B(k, j) * A(i, k);
           }
-          C[i][j] = beta * C[i][j] + alpha * B[i][j] * A[i][i] + alpha * temp2;
+          C(i, j) = beta * C(i, j) + alpha * B(i, j) * A(i, i) + alpha * temp2;
         });
   }
 #else

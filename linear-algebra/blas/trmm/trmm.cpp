@@ -81,9 +81,9 @@ static void kernel_trmm(size_t m, size_t n, DATA_TYPE alpha,
     Kokkos::parallel_for(
         policy, KOKKOS_LAMBDA(const size_t j) {
           for (size_t k = i + 1; k < m; k++) {
-            B[i][j] += A[k][i] * B[k][j];
+            B(i, j) += A(k, i) * B(k, j);
           }
-          B[i][j] = alpha * B[i][j];
+          B(i, j) = alpha * B(i, j);
         });
   }
 #else

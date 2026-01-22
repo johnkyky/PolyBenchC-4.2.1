@@ -141,7 +141,6 @@ int main(int argc, char **argv) {
   POLYBENCH_FREE_ARRAY(A);
   POLYBENCH_FREE_ARRAY(sum);
   POLYBENCH_FREE_ARRAY(C4);
-  POLYBENCH_FREE_ARRAY(tmp);
 
   FINALIZE;
 
