@@ -114,36 +114,33 @@ static void kernel_ludcmp(size_t n,
         x(n - 1 - i) = w / A(n - 1 - i, n - 1 - i);
       });
 #elif defined(POLYBENCH_KOKKOS)
-  const auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+  for (size_t i = 0; i < n; i++) {
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<Kokkos::Serial>(0, i), KOKKOS_LAMBDA(size_t j) {
+          for (size_t k = 0; k < j; k++) {
+            A(i, j) -= A(i, k) * A(k, j);
+          }
+          A(i, j) /= A(j, j);
+        });
+
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<Kokkos::OpenMP>(i, n), KOKKOS_LAMBDA(size_t j) {
+          for (size_t k = 0; k < i; k++) {
+            A(i, j) -= A(i, k) * A(k, j);
+          }
+        });
+  }
 
   Kokkos::parallel_for(
-      policy_1D, KOKKOS_LAMBDA(const size_t i) {
-        for (size_t j = 0; j < i; j++) {
-          DATA_TYPE w = A(i, j);
-          for (size_t k = 0; k < j; k++) {
-            w -= A(i, k) * A(k, j);
-          }
-          A(i, j) = w / A(j, j);
-        }
-        for (size_t j = i; j < n; j++) {
-          DATA_TYPE w = A(i, j);
-          for (size_t k = 0; k < i; k++) {
-            w -= A(i, k) * A(k, j);
-          }
-          A(i, j) = w;
-        }
-      });
-
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const size_t i) {
+      Kokkos::RangePolicy<Kokkos::Serial>(0, n), KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE w = b[i];
         for (size_t j = 0; j < i; j++)
           w -= A(i, j) * y(j);
         y(i) = w;
       });
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const size_t i) {
+  Kokkos::parallel_for(
+      Kokkos::RangePolicy<Kokkos::Serial>(0, n), KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE w = y(n - 1 - i);
         for (size_t j = n - i; j < n; j++)
           w -= A(n - 1 - i, j) * x(j);
@@ -175,7 +172,7 @@ static void kernel_ludcmp(size_t n,
     y[i] = w;
   }
 
-  for (size_t i = n - 1; i >= 0; i--) {
+  for (ssize_t i = n - 1; i >= 0; i--) {
     DATA_TYPE w = y[i];
     for (size_t j = i + 1; j < _PB_N; j++)
       w -= A[i][j] * x[j];

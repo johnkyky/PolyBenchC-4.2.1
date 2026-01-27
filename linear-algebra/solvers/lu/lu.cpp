@@ -68,7 +68,7 @@ static void kernel_lu(size_t n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.u0 == n">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.u0 == n, n > 10">(
       policy_1D, KOKKOS_LAMBDA(const size_t i) {
         for (size_t j = 0; j < i; j++) {
           for (size_t k = 0; k < j; k++) {
