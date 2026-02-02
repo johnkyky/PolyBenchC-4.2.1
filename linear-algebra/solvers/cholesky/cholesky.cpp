@@ -63,58 +63,55 @@ static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_cholesky(int n,
+static void kernel_cholesky(size_t n,
                             ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
+
 #if defined(POLYBENCH_USE_POLLY)
-  Kokkos::parallel_for<usePolyOpt>(
-      Kokkos::RangePolicy<Kokkos::Serial>(0, n), KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < i; j++) {
-          for (int k = 0; k < j; k++) {
+  const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.u0 > 10">(
+      policy, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < i; j++) {
+          for (size_t k = 0; k < j; k++) {
             A(i, j) -= A(i, k) * A(j, k);
           }
           A(i, j) /= A(j, j);
         }
         // i==j case
-        for (int k = 0; k < i; k++) {
+        for (size_t k = 0; k < i; k++) {
+          A(i, i) -= A(i, k) * A(i, k);
+        }
+        A(i, i) = SQRT_FUN(A(i, i));
+        // A(i, i) += A(i, i);
+      });
+#elif defined(POLYBENCH_KOKKOS)
+  auto policy = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+  Kokkos::parallel_for(
+      policy, KOKKOS_LAMBDA(const size_t i) {
+        // j<i
+        for (size_t j = 0; j < i; j++) {
+          for (size_t k = 0; k < j; k++) {
+            A(i, j) -= A(i, k) * A(j, k);
+          }
+          A(i, j) /= A(j, j);
+        }
+        // i==j case
+        for (size_t k = 0; k < i; k++) {
           A(i, i) -= A(i, k) * A(i, k);
         }
         A(i, i) = SQRT_FUN(A(i, i));
       });
-#elif defined(POLYBENCH_KOKKOS)
-  for (int i = 0; i < n; i++) {
-    // j < i
-    Kokkos::parallel_for(
-        "Factorize_Row", Kokkos::RangePolicy<Kokkos::Serial>(0, i),
-        KOKKOS_LAMBDA(int j) {
-          for (int k = 0; k < j; k++) {
-            A(i, j) -= A(i, k) * A(j, k);
-          }
-          A(i, j) /= A(j, j);
-        });
-
-    // i == j case
-    DATA_TYPE sum = DATA_TYPE(0);
-    Kokkos::parallel_reduce(
-        "Diag_Update", Kokkos::RangePolicy<>(0, i),
-        KOKKOS_LAMBDA(const int k, DATA_TYPE &local_sum) {
-          local_sum += A(i, k) * A(i, k);
-        },
-        sum);
-    A(i, i) -= sum;
-    A(i, i) = SQRT_FUN(A(i, i));
-  }
 #else
 #pragma scop
-  for (int i = 0; i < n; i++) {
+  for (size_t i = 0; i < n; i++) {
     // j<i
-    for (int j = 0; j < i; j++) {
-      for (int k = 0; k < j; k++) {
+    for (size_t j = 0; j < i; j++) {
+      for (size_t k = 0; k < j; k++) {
         A[i][j] -= A[i][k] * A[j][k];
       }
       A[i][j] /= A[j][j];
     }
     // i==j case
-    for (int k = 0; k < i; k++) {
+    for (size_t k = 0; k < i; k++) {
       A[i][i] -= A[i][k] * A[i][k];
     }
     A[i][i] = SQRT_FUN(A[i][i]);
