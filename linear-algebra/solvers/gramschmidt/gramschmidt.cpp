@@ -67,49 +67,50 @@ static void print_array(int m, int n,
    including the call and return. */
 /* QR Decomposition with Modified Gram Schmidt:
  http://www.inf.ethz.ch/personal/gander/ */
-static void kernel_gramschmidt(int m, int n,
+static void kernel_gramschmidt(size_t m, size_t n,
                                ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, M, N, m, n),
                                ARRAY_2D_FUNC_PARAM(DATA_TYPE, R, N, N, n, n),
                                ARRAY_2D_FUNC_PARAM(DATA_TYPE, Q, M, N, m, n)) {
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<usePolyOpt>(
-      policy_1D, KOKKOS_LAMBDA(const int k) {
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.u0 == n, m > 5">(
+      policy_1D, KOKKOS_LAMBDA(const size_t k) {
         DATA_TYPE nrm = SCALAR_VAL(0.0);
-        for (int i = 0; i < m; i++)
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(m); i++)
           nrm += A(i, k) * A(i, k);
         R(k, k) = SQRT_FUN(nrm);
-        for (int i = 0; i < m; i++)
+        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(m); i++)
           Q(i, k) = A(i, k) / R(k, k);
-        for (int j = k + 1; j < n; j++) {
+        for (size_t j = k + 1; j < KOKKOS_LOOP_BOUND(n); j++) {
           R(k, j) = SCALAR_VAL(0.0);
-          for (int i = 0; i < m; i++)
+          for (size_t i = 0; i < KOKKOS_LOOP_BOUND(m); i++)
             R(k, j) += Q(i, k) * A(i, j);
-          for (int i = 0; i < m; i++)
+          for (size_t i = 0; i < KOKKOS_LOOP_BOUND(m); i++)
             A(i, j) = A(i, j) - Q(i, k) * R(k, j);
         }
       });
 #elif defined(POLYBENCH_KOKKOS)
-  for (int k = 0; k < N; k++) {
+  auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
+  for (size_t k = 0; k < n; k++) {
     DATA_TYPE nrm = DATA_TYPE(0);
     Kokkos::parallel_reduce(
-        "Compute_Norm", Kokkos::RangePolicy<>(0, M),
-        KOKKOS_LAMBDA(int i, DATA_TYPE &local_nrm) {
+        policy_1D,
+        KOKKOS_LAMBDA(size_t i, DATA_TYPE &local_nrm) {
           local_nrm += A(i, k) * A(i, k);
         },
         nrm);
+
     R(k, k) = SQRT_FUN(nrm);
 
     Kokkos::parallel_for(
-        "Normalize_Column", Kokkos::RangePolicy<>(0, M),
-        KOKKOS_LAMBDA(int i) { Q(i, k) = A(i, k) / R(k, k); });
+        policy_1D, KOKKOS_LAMBDA(size_t i) { Q(i, k) = A(i, k) / R(k, k); });
 
     Kokkos::parallel_for(
-        "Update_A_R", Kokkos::RangePolicy<>(k + 1, N), KOKKOS_LAMBDA(int j) {
-          for (int i = 0; i < _PB_M; i++)
+        Kokkos::RangePolicy<Kokkos::OpenMP>(k + 1, n), KOKKOS_LAMBDA(size_t j) {
+          for (size_t i = 0; i < m; i++)
             R(k, j) += Q(i, k) * A(i, j);
-          for (int i = 0; i < _PB_M; i++)
+          for (size_t i = 0; i < m; i++)
             A(i, j) = A(i, j) - Q(i, k) * R(k, j);
         });
   }
@@ -117,18 +118,22 @@ static void kernel_gramschmidt(int m, int n,
   DATA_TYPE nrm;
 
 #pragma scop
-  for (int k = 0; k < _PB_N; k++) {
+  for (size_t k = 0; k < n; k++) {
     nrm = SCALAR_VAL(0.0);
-    for (int i = 0; i < _PB_M; i++)
+
+    for (size_t i = 0; i < m; i++)
       nrm += A[i][k] * A[i][k];
+
     R[k][k] = SQRT_FUN(nrm);
-    for (int i = 0; i < _PB_M; i++)
+
+    for (size_t i = 0; i < m; i++)
       Q[i][k] = A[i][k] / R[k][k];
-    for (int j = k + 1; j < _PB_N; j++) {
+
+    for (size_t j = k + 1; j < n; j++) {
       R[k][j] = SCALAR_VAL(0.0);
-      for (int i = 0; i < _PB_M; i++)
+      for (size_t i = 0; i < m; i++)
         R[k][j] += Q[i][k] * A[i][j];
-      for (int i = 0; i < _PB_M; i++)
+      for (size_t i = 0; i < m; i++)
         A[i][j] = A[i][j] - Q[i][k] * R[k][j];
     }
   }
