@@ -1,0 +1,23 @@
+A[1][0] /= A[0][0];
+
+for (size_t j = 1; j < n; j++) {
+    A[1][j] -= A[1][0] * A[0][j];
+}
+
+
+for (size_t i = 2; i < n; i++) {
+    A[i][0] /= A[0][0];
+
+    for (size_t j = 1; j < i; j++) {
+        for (size_t k = 0; k < j; k++) {
+            A[i][j] -= A[i][k] * A[k][j];
+        }
+        A[i][j] /= A[j][j];
+    }
+
+    for (size_t j = i; j < n; j++) {
+        for (size_t k = 0; k < i; k++) {
+            A[i][j] -= A[i][k] * A[k][j];
+        }
+    }
+}
