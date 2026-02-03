@@ -252,11 +252,11 @@ def run_verif(kernel_dir,
                                      f"{kernel}_{version}.out"))
 
         check_str = check_output(os.path.join(kernel_output_path,
-                                              f"{kernel}_{version}.out"),
+                                              f"{kernel}_std.out"),
                                  os.path.join(kernel_output_path,
-                                              f"{kernel}_{version}.out"),
+                                              f"{kernel}_kokkos.out"),
                                  os.path.join(kernel_output_path,
-                                              f"{kernel}_{version}.out"))
+                                              f"{kernel}_polly.out"))
         display_row_data(True, kernel, 1, 1, 1, check_str)
 
 
