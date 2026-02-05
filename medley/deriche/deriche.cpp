@@ -82,20 +82,8 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
   const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, w);
   const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, h);
   const auto policy_2D_1 =
-      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {w, h});
-
-  // Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0==0">(
-  //     "kernel", policy_1D_1, KOKKOS_LAMBDA(const size_t i) {
-  //       DATA_TYPE ym1 = SCALAR_VAL(0.0);
-  //       DATA_TYPE ym2 = SCALAR_VAL(0.0);
-  //       DATA_TYPE xm1 = SCALAR_VAL(0.0);
-  //       for (size_t j = 0; j < KOKKOS_LOOP_BOUND(h); j++) {
-  //         y1(i, j) = a1 * imgIn(i, j) + a2 * xm1 + b1 * ym1 + b2 * ym2;
-  //         xm1 = imgIn(i, j);
-  //         ym2 = ym1;
-  //         ym1 = y1(i, j);
-  //       }
-  //     });
+      Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {w, h},
+                                                             {32, 32});
 
   Kokkos::parallel_for<
       Kokkos::usePolyOpt,
