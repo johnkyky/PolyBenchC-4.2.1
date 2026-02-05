@@ -253,7 +253,7 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
     yp2 = SCALAR_VAL(0.0);
     xp1 = SCALAR_VAL(0.0);
     xp2 = SCALAR_VAL(0.0);
-    for (size_t j = h - 1; j >= 0; j--) {
+    for (ssize_t j = h - 1; j >= 0; j--) {
       y2[i][j] = a3 * xp1 + a4 * xp2 + b1 * yp1 + b2 * yp2;
       xp2 = xp1;
       xp1 = imgIn[i][j];
@@ -284,7 +284,7 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
     tp2 = SCALAR_VAL(0.0);
     yp1 = SCALAR_VAL(0.0);
     yp2 = SCALAR_VAL(0.0);
-    for (size_t i = w - 1; i >= 0; i--) {
+    for (ssize_t i = w - 1; i >= 0; i--) {
       y2[i][j] = a7 * tp1 + a8 * tp2 + b1 * yp1 + b2 * yp2;
       tp2 = tp1;
       tp1 = imgOut[i][j];
