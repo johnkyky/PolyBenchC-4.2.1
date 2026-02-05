@@ -83,16 +83,20 @@ static void kernel_mvt(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, x1, N, n),
         x2(i) = x2(i) + A(j, i) * y_2(j);
       });
 #elif defined(POLYBENCH_KOKKOS)
-  const auto policy_2D = Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>(
-      {0, 0}, {n, n}, {32, 32});
+  auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
   Kokkos::parallel_for(
-      policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
-        x1(i) = x1(i) + A(i, j) * y_1(j);
+      policy, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < n; j++) {
+          x1(i) = x1(i) + A(i, j) * y_1(j);
+        }
       });
+
   Kokkos::parallel_for(
-      policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
-        x2(i) = x2(i) + A(j, i) * y_2(j);
+      policy, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < n; j++) {
+          x2(i) = x2(i) + A(j, i) * y_2(j);
+        }
       });
 #else
 #pragma scop
