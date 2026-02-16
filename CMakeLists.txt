@@ -124,14 +124,20 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile\""
     # "SHELL:-mllvm -polly-pluto-args=\"--parallel --identity\""
 
+    # "SHELL:-mllvm -polly-detect-reductions=false"
     "SHELL:-mllvm -polly-dependences-computeout=0"
     "SHELL:-mllvm -polly-schedule-computeout=0"
-    "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-remove-loop-bound-condition,polly-triangular-loop-fix,polly-remove-loop-versioning,polly-var-fusion,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter,polly-array-reg2mem"
+    "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-remove-loop-bound-condition,polly-triangular-loop-fix,polly-remove-loop-versioning,polly-var-fusion,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter,polly-array-reg2mem,polly-merge-redundant-invariant-loads,polly-lower-instruction-for-reduction"
     
+    "SHELL:-mllvm -polly-disable-multiplicative-reductions"
+    # "SHELL:-mllvm -polly-ast-print-accesses"
     # "SHELL:-mllvm -polly-kokkos-check-parallelism=true"
-    # "SHELL:-mllvm -polly-codegen-emit-rtc-print"
+    "SHELL:-mllvm -polly-codegen-emit-rtc-print"
     # "SHELL:-mllvm -polly-codegen-emit-params-print"
     # "SHELL:-mllvm -polly-ast-print-accesses"
+
+    "-fno-math-errno"
+    # "-g"
   )
 endif()
 
