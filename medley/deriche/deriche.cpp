@@ -57,11 +57,6 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, imgOut, W, H, w, h),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, y1, W, H, w, h),
                            ARRAY_2D_FUNC_PARAM(DATA_TYPE, y2, W, H, w, h)) {
-  DATA_TYPE xm1, tm1, ym1, ym2;
-  DATA_TYPE xp1, xp2;
-  DATA_TYPE tp1, tp2;
-  DATA_TYPE yp1, yp2;
-
   DATA_TYPE k;
   DATA_TYPE a1, a2, a3, a4, a5, a6, a7, a8;
   DATA_TYPE b1, b2, c1, c2;
@@ -84,12 +79,19 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
   const auto policy_2D_1 =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {w, h},
                                                              {32, 32});
+  // "p0.l0==0, p1.l0==0, p2.l0==0, p2.l1==0, p3.l0==0, p4.l0==0, p5.l0==0, "
+  //       "p5.l1 == 0, p0.u0 == p1.u0, p2.u0 == p5.u0, p2.u1 == p5.u1, p3.u0 ==
+  //       " "p4.u0, p0.u0==p2.u0, p3.u0==p2.u1, p0.u0==w, p3.u0==h"
 
-  Kokkos::parallel_for<
-      Kokkos::usePolyOpt,
-      "p0.l0==0, p1.l0==0, p2.l0==0, p2.l1==0, p3.l0==0, p4.l0==0, p5.l0==0, "
-      "p5.l1 == 0, p0.u0 == p1.u0, p2.u0 == p5.u0, p2.u1 == p5.u1, p3.u0 == "
-      "p4.u0, p0.u0==p2.u0, p3.u0==p2.u1, p0.u0==w, p3.u0==h">(
+  // "p0.l0 == 0, p0.u0 > 10, p0.u0 == w, p0. == p1., "
+  // "p2.l == 0, p2.u0 == w, p2.u1 == h, "
+  // "p3.l0 == 0, p3.u0 > 10, p3.u0 == h, p3. == p4., "
+  // "p2. == p5."
+  Kokkos::parallel_for<Kokkos::usePolyOpt,
+                       "p0.l0 == 0, p0.u0 > 10, p0.u0 == w, p0. == p1., "
+                       "p2.l == 0, p2.u0 == w, p2.u1 == h, "
+                       "p3.l0 == 0, p3.u0 > 10, p3.u0 == h, p3. == p4., "
+                       "p2. == p5.">(
       "kernel", policy_1D_1,
       KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE ym1 = SCALAR_VAL(0.0);
@@ -223,6 +225,11 @@ static void kernel_deriche(size_t w, size_t h, DATA_TYPE alpha,
         imgOut(i, j) = c2 * (y1(i, j) + y2(i, j));
       });
 #else
+  DATA_TYPE xm1, tm1, ym1, ym2;
+  DATA_TYPE xp1, xp2;
+  DATA_TYPE tp1, tp2;
+  DATA_TYPE yp1, yp2;
+
 #pragma scop
   for (size_t i = 0; i < w; i++) {
     ym1 = SCALAR_VAL(0.0);

@@ -20,23 +20,23 @@
 #if !defined(M) && !defined(N)
 /* Define sample dataset sizes. */
 #ifdef MINI_DATASET
-#define M 32
-#define N 40
+#define M 60
+#define N 80
 #endif
 
 #ifdef SMALL_DATASET
-#define M 256
-#define N 272
+#define M 200
+#define N 240
 #endif
 
 #ifdef MEDIUM_DATASET
-#define M 1024
-#define N 1048
+#define M 1000
+#define N 1200
 #endif
 
 #ifdef LARGE_DATASET
-#define M 2048
-#define N 2080
+#define M 2000
+#define N 2600
 #endif
 
 #ifdef EXTRALARGE_DATASET
@@ -71,7 +71,7 @@
 
 #ifdef DATA_TYPE_IS_DOUBLE
 #define DATA_TYPE double
-#define DATA_PRINTF_MODIFIER "%0.2lf "
+#define DATA_PRINTF_MODIFIER "%0.6lf "
 #define SCALAR_VAL(x) x
 #define SQRT_FUN(x) sqrt(x)
 #define EXP_FUN(x) exp(x)

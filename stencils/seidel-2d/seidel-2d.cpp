@@ -48,8 +48,7 @@ static void kernel_seidel_2d(size_t tsteps, size_t n,
                              ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, N, n, n)) {
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_time = Kokkos::RangePolicy<Kokkos::OpenMP>(0, tsteps);
-  Kokkos::parallel_for<Kokkos::usePolyOpt,
-                       "p0.l0 == 0, p0.u0 < 10000, p0.l0 < p0.u0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, n > 10">(
       policy_time, KOKKOS_LAMBDA(const size_t t) {
         for (size_t i = 1; i <= KOKKOS_LOOP_BOUND(n) - 2; i++)
           for (size_t j = 1; j <= KOKKOS_LOOP_BOUND(n) - 2; j++)

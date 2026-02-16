@@ -71,7 +71,7 @@ static void kernel_covariance(size_t m, size_t n, DATA_TYPE float_n,
       KOKKOS_LAMBDA(const size_t i, const size_t j) { data(i, j) -= mean(j); },
       policy_1D,
       KOKKOS_LAMBDA(const size_t i) {
-        for (long j = i; j < m; j++) {
+        for (long j = i; j < KOKKOS_LOOP_BOUND(m); j++) {
           cov(i, j) = SCALAR_VAL(0.0);
           for (long k = 0; k < KOKKOS_LOOP_BOUND(n); k++)
             cov(i, j) += data(k, i) * data(k, j);

@@ -58,14 +58,14 @@ static void kernel_atax(size_t m, size_t n,
   const auto policy_1D_1 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
   const auto policy_1D_2 = Kokkos::RangePolicy<Kokkos::OpenMP>(0, m);
 
-  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p1.l0 == 0">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l == 0, p1.l == 0, p0.u0 == n">(
       "kernel", policy_1D_1, KOKKOS_LAMBDA(const size_t i) { y(i) = 0; },
       policy_1D_2,
       KOKKOS_LAMBDA(const size_t i) {
         tmp(i) = SCALAR_VAL(0.0);
-        for (size_t j = 0; j < n; j++)
+        for (size_t j = 0; j < KOKKOS_LOOP_BOUND(n); j++)
           tmp(i) = tmp(i) + A(i, j) * x(j);
-        for (size_t j = 0; j < n; j++)
+        for (size_t j = 0; j < KOKKOS_LOOP_BOUND(n); j++)
           y(j) = y(j) + A(i, j) * tmp(i);
       });
 

@@ -81,7 +81,10 @@ static void kernel_ludcmp(size_t n,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0, p0.u0 == n">(
+  // "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == p2."
+  Kokkos::parallel_for<
+      Kokkos::usePolyOpt,
+      "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == p2., n < 10000">(
       "kernel", policy_1D,
       KOKKOS_LAMBDA(const size_t i) {
         for (size_t j = 0; j < i; j++) {
@@ -109,30 +112,35 @@ static void kernel_ludcmp(size_t n,
       policy_1D,
       KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE w = y(n - 1 - i);
-        for (size_t j = n - i; j < KOKKOS_LOOP_BOUND(n); j++)
+        for (size_t j = n - 1 - i + 1; j < KOKKOS_LOOP_BOUND(n); j++)
           w -= A(n - 1 - i, j) * x(j);
         x(n - 1 - i) = w / A(n - 1 - i, n - 1 - i);
       });
 #elif defined(POLYBENCH_KOKKOS)
+  auto policy_1D = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
+
   for (size_t i = 0; i < n; i++) {
     Kokkos::parallel_for(
         Kokkos::RangePolicy<Kokkos::Serial>(0, i), KOKKOS_LAMBDA(size_t j) {
-          for (size_t k = 0; k < j; k++) {
-            A(i, j) -= A(i, k) * A(k, j);
+          DATA_TYPE w = A(i, j);
+          for (size_t k = 0; k < j; k++) { // 1 empty iteration
+            w -= A(i, k) * A(k, j);
           }
-          A(i, j) /= A(j, j);
+          A(i, j) = w / A(j, j);
         });
 
     Kokkos::parallel_for(
         Kokkos::RangePolicy<Kokkos::OpenMP>(i, n), KOKKOS_LAMBDA(size_t j) {
-          for (size_t k = 0; k < i; k++) {
-            A(i, j) -= A(i, k) * A(k, j);
+          DATA_TYPE w = A(i, j);
+          for (size_t k = 0; k < i; k++) { // 1 empty iteration
+            w -= A(i, k) * A(k, j);
           }
+          A(i, j) = w;
         });
   }
 
   Kokkos::parallel_for(
-      Kokkos::RangePolicy<Kokkos::Serial>(0, n), KOKKOS_LAMBDA(const size_t i) {
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE w = b[i];
         for (size_t j = 0; j < i; j++)
           w -= A(i, j) * y(j);
@@ -140,41 +148,41 @@ static void kernel_ludcmp(size_t n,
       });
 
   Kokkos::parallel_for(
-      Kokkos::RangePolicy<Kokkos::Serial>(0, n), KOKKOS_LAMBDA(const size_t i) {
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
         DATA_TYPE w = y(n - 1 - i);
-        for (size_t j = n - i; j < n; j++)
+        for (size_t j = n - 1 - i + 1; j < n; j++)
           w -= A(n - 1 - i, j) * x(j);
         x(n - 1 - i) = w / A(n - 1 - i, n - 1 - i);
       });
 #else
 #pragma scop
-  for (size_t i = 0; i < n; i++) {
-    for (size_t j = 0; j < i; j++) {
+  for (size_t i = 0; i < n; i++) {   // 0 empty iteration
+    for (size_t j = 0; j < i; j++) { // 1 empty iteration
       DATA_TYPE w = A[i][j];
-      for (size_t k = 0; k < j; k++) {
+      for (size_t k = 0; k < j; k++) { // 1 empty iteration
         w -= A[i][k] * A[k][j];
       }
       A[i][j] = w / A[j][j];
     }
-    for (size_t j = i; j < n; j++) {
+    for (size_t j = i; j < n; j++) { // 0 empty iteration
       DATA_TYPE w = A[i][j];
-      for (size_t k = 0; k < i; k++) {
+      for (size_t k = 0; k < i; k++) { // 1 empty iteration
         w -= A[i][k] * A[k][j];
       }
       A[i][j] = w;
     }
   }
 
-  for (size_t i = 0; i < n; i++) {
+  for (size_t i = 0; i < n; i++) { // 0 empty iteration
     DATA_TYPE w = b[i];
-    for (size_t j = 0; j < i; j++)
+    for (size_t j = 0; j < i; j++) // 1 empty iteration
       w -= A[i][j] * y[j];
     y[i] = w;
   }
 
-  for (ssize_t i = n - 1; i >= 0; i--) {
+  for (ssize_t i = n - 1; i >= 0; i--) { // 0 empty iteration
     DATA_TYPE w = y[i];
-    for (size_t j = i + 1; j < _PB_N; j++)
+    for (size_t j = i + 1; j < n; j++) // 1 empty iteration
       w -= A[i][j] * x[j];
     x[i] = w / A[i][i];
   }

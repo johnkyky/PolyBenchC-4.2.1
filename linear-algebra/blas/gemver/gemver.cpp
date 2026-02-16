@@ -105,18 +105,20 @@ static void kernel_gemver(size_t n, DATA_TYPE alpha, DATA_TYPE beta,
       {0, 0}, {n, n}, {32, 32});
 
   Kokkos::parallel_for(
-      "kernel", policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
+      policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
         A(i, j) = A(i, j) + u1(i) * v1(j) + u2(i) * v2(j);
       });
   Kokkos::parallel_for(
-      policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
-        x(i) = x(i) + beta * A(j, i) * y(j);
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < n; j++)
+          x(i) = x(i) + beta * A(j, i) * y(j);
       });
   Kokkos::parallel_for(
       policy_1D, KOKKOS_LAMBDA(const size_t i) { x(i) = x(i) + z(i); });
   Kokkos::parallel_for(
-      policy_2D, KOKKOS_LAMBDA(const size_t i, const size_t j) {
-        w(i) = w(i) + alpha * A(i, j) * x(j);
+      policy_1D, KOKKOS_LAMBDA(const size_t i) {
+        for (size_t j = 0; j < n; j++)
+          w(i) = w(i) + alpha * A(i, j) * x(j);
       });
 #else
 #pragma scop
