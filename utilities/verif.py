@@ -1,5 +1,6 @@
 import os
 import time
+import re
 import shutil
 import argparse
 import subprocess
@@ -44,6 +45,8 @@ def parse_args():
                         help="Install directory for Kokkos")
     parser.add_argument("--polybench_dir", type=str, required=True,
                         help="Polybench directory")
+    parser.add_argument("--process_dir", type=str, required=True,
+                        help="Polybench execution directory")
     args = parser.parse_args()
     return args
 
@@ -145,6 +148,24 @@ def do_statistics(file):
     return (average, median, standard_deviation, minimum, maximum)
 
 
+def sanitize_zeros(filepath):
+    try:
+        with open(filepath, 'r') as f:
+            content = f.read()
+
+        clean_content = re.sub(r'-(0\.0+(?!\d))', r'\1', content)
+
+        if content != clean_content:
+            with open(filepath, 'w') as f:
+                f.write(clean_content)
+
+        return clean_content
+
+    except IOError as e:
+        print(f"Erreur lors du traitement de {filepath}: {e}")
+        return None
+
+
 def compute_hash(fichier):
     hasher = hashlib.sha256()
     with open(fichier, "rb") as f:
@@ -153,21 +174,23 @@ def compute_hash(fichier):
 
 
 def check_output(file_std, file_kokkos, file_polly):
-    # Calcul du hash des 3 fichiers
+    sanitize_zeros(file_std)
+    sanitize_zeros(file_kokkos)
+    sanitize_zeros(file_polly)
+
     hash1 = compute_hash(file_std)
     hash2 = compute_hash(file_kokkos)
     hash3 = compute_hash(file_polly)
 
     res = ""
     if hash1 != hash2:
-        # print("Erreur : les fichiers standard et kokkos sont différents.")
-        res += f"{RED}K\u0336{NO_COLOR}\n"
+        res += f"{COLOR[RED]}K{COLOR[NO_COLOR]}"
+    else:
+        res += f"{COLOR[GREEN]}K{COLOR[NO_COLOR]}"
     if hash1 != hash3:
-        # print("Erreur : les fichiers standard et polly sont différents.")
-        res += f"{COLOR[RED]}P\u0336{COLOR[NO_COLOR]}"
-    elif hash1 == hash2 and hash1 == hash3:
-        # print("Les fichiers sont identiques.")
-        res = f"{COLOR[GREEN]}KP{COLOR[NO_COLOR]}"
+        res += f"{COLOR[RED]}P{COLOR[NO_COLOR]}"
+    else:
+        res += f"{COLOR[GREEN]}P{COLOR[NO_COLOR]}"
     return res
 
 
@@ -296,7 +319,7 @@ def main():
     args = parse_args()
 
     polybench_dir = args.polybench_dir
-    process_dir = "/tmp/polybench"
+    process_dir = args.process_dir
     build_std = os.path.join(process_dir, "build_std")
     build_kokkos = os.path.join(process_dir, "build_kokkos")
     build_polly = os.path.join(process_dir, "build_polly")
@@ -312,27 +335,17 @@ def main():
     os.makedirs(build_kokkos, exist_ok=True)
     os.makedirs(build_polly, exist_ok=True)
 
-    # datasets = {
-    #     "datamining": ["correlation", "covariance"],
-    #     "linear-algebra/blas": ["gemm", "gemver", "gesummv", "symm", "syr2k",
-    #                                "syrk", "trmm"],
-    #     "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
-    #                                "mvt"],
-    #     "linear-algebra/solvers": ["cholesky", "durbin", "gramschmidt", "lu",
-    #                                "ludcmp", "trisolv"],
-    #     "medley": ["deriche", "floyd-warshall", "nussinov"],
-    #     "stencils": ["adi", "fdtd-2d", "heat-3d", "jacobi-1d", "jacobi-2d",
-    #                  "seidel-2d"],
-    # }
-
     datasets = {
-        # "datamining": ["correlation", "covariance"],
-        # "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
-        #                            "mvt"],
-        # "linear-algebra/solvers": ["cholesky", "durbin", "gramschmidt", "lu",
-        #                            "ludcmp", "trisolv"],
-        # "medley": ["deriche", "floyd-warshall", "nussinov"],
-        "stencils": ["heat-3d", "jacobi-1d", "jacobi-2d"],
+        "datamining": ["covariance"],
+        "linear-algebra/blas": ["gemm", "gemver", "gesummv", "symm", "syr2k",
+                                "syrk", "trmm"],
+        "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
+                                   "mvt"],
+        "linear-algebra/solvers": ["cholesky", "durbin", "gramschmidt", "lu",
+                                   "ludcmp", "trisolv"],
+        "medley": ["deriche"],
+        "stencils": ["adi", "fdtd-2d", "heat-3d", "jacobi-1d", "jacobi-2d",
+                     "seidel-2d"],
     }
 
     generate_build_file(polybench_dir, output_dir,
