@@ -92,8 +92,11 @@ def display_row_data_bench(kernel,
                            statistics_polly):
     avg_k, med_k, std_dev_k, min_k, max_k = statistics_kokkos
     avg_p, med_p, std_dev_p, min_p, max_p = statistics_polly
+    speedup = avg_k / avg_p if avg_p != 0 else float('inf')
     print((f"| {COLOR[GREEN]}{str(kernel).center(25)}{
           COLOR[NO_COLOR]} | {''.center(25)} | {''.center(25)} |"))
+    print((f"| {'speedup'.center(25)} | {str(f'{1}').center(25)} | {
+          str(f'{speedup:,.2f}').center(25)} |"))
     print((f"| {'average'.center(25)} | {str(f'{avg_k:,.1f}').center(25)} | {
           str(f'{avg_p:,.1f}').center(25)} |"))
     print((f"| {'median'.center(25)} | {str(f'{med_k:,.1f}').center(25)} | {
