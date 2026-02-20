@@ -81,7 +81,6 @@ static void kernel_cholesky(size_t n,
           A(i, i) -= A(i, k) * A(i, k);
         }
         A(i, i) = SQRT_FUN(A(i, i));
-        // A(i, i) += A(i, i);
       });
 #elif defined(POLYBENCH_KOKKOS)
   auto policy = Kokkos::RangePolicy<Kokkos::Serial>(0, n);
