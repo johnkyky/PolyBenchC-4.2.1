@@ -81,7 +81,6 @@ static void kernel_ludcmp(size_t n,
 #if defined(POLYBENCH_USE_POLLY)
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
-  // "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == p2."
   Kokkos::parallel_for<
       Kokkos::usePolyOpt,
       "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == p2., n < 10000">(
