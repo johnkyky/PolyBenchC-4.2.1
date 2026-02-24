@@ -356,7 +356,7 @@ def main():
     os.makedirs(build_polly, exist_ok=True)
 
     datasets = {
-        # "datamining": ["covariance"],
+        "datamining": ["covariance"],
         "linear-algebra/blas": ["gemm", "gemver", "gesummv", "symm", "syr2k",
                                 "syrk", "trmm"],
         "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
