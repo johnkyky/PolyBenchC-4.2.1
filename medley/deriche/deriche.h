@@ -30,18 +30,18 @@
 #endif
 
 #ifdef MEDIUM_DATASET
+#define W 512
+#define H 448
+#endif
+
+#ifdef LARGE_DATASET
 #define W 1024
 #define H 880
 #endif
 
-#ifdef LARGE_DATASET
+#ifdef EXTRALARGE_DATASET
 #define W 10240
 #define H 8800
-#endif
-
-#ifdef EXTRALARGE_DATASET
-#define W 20480
-#define H 16384
 #endif
 
 #endif /* !(W H) */

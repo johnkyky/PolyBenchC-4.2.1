@@ -35,13 +35,13 @@
 #endif
 
 #ifdef LARGE_DATASET
-#define M 12000
-#define N 14000
+#define M 8000
+#define N 10000
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define M 26000
-#define N 30000
+#define M 16000
+#define N 20000
 #endif
 
 #endif /* !(M N) */

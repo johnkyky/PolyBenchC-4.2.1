@@ -27,26 +27,26 @@
 
 #ifdef SMALL_DATASET
 #define TMAX 50
-#define NX 400
-#define NY 600
+#define NX 200
+#define NY 300
 #endif
 
 #ifdef MEDIUM_DATASET
 #define TMAX 100
-#define NX 900
-#define NY 1100
+#define NX 400
+#define NY 600
 #endif
 
 #ifdef LARGE_DATASET
 #define TMAX 250
-#define NX 9000
-#define NY 11000
+#define NX 900
+#define NY 1100
 #endif
 
 #ifdef EXTRALARGE_DATASET
 #define TMAX 500
-#define NX 19000
-#define NY 21000
+#define NX 1800
+#define NY 2200
 #endif
 
 #endif /* !(TMAX NX NY) */

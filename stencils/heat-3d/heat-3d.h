@@ -26,22 +26,22 @@
 
 #ifdef SMALL_DATASET
 #define TSTEPS 50
-#define N 128
+#define N 64
 #endif
 
 #ifdef MEDIUM_DATASET
 #define TSTEPS 100
-#define N 256
+#define N 128
 #endif
 
 #ifdef LARGE_DATASET
 #define TSTEPS 250
-#define N 512
+#define N 256
 #endif
 
 #ifdef EXTRALARGE_DATASET
 #define TSTEPS 250
-#define N 1024
+#define N 512
 #endif
 
 #endif /* !(TSTEPS N) */
