@@ -271,8 +271,8 @@ def run_verif(kernel_dir,
             make_command = f"make -j {kernel}"
             run_command(make_command, os.path.join(
                 kernel_output_path, f"{kernel}_{version}.compile"))
-            print(f"{COLOR[YELLOW]}\rRunning {kernel} {
-                  version} version{COLOR[NO_COLOR]}\r", end="")
+            print(f"{COLOR[YELLOW]}\rRunning {kernel} "
+                  f"{version} version{COLOR[NO_COLOR]}\r", end="")
             exec_command = (
                 f"{ARGS_ENV} {build}/{kernel_dir}/"
                 f"{kernel}/{kernel}"
