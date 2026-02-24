@@ -63,7 +63,8 @@ def display_row_title(verif, kernel):
     display_row_line(verif)
     if verif:
         print((f"| {kernel.center(25)} | {'Standard'.center(25)} | "
-               f"{'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
+               f"{'Kokkos'.center(25)} | {'Polly'.center(25)} | "
+               f"{'Verif'.center(14)} |"))
     else:
         print((f"| {kernel.center(25)} | "
                f"{'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
@@ -79,7 +80,7 @@ def display_row_data(verif,
     if verif:
         print((f"| {kernel.center(25)} | {str(time_std).center(25)} | "
                f"{str(time_kokkos).center(25)} | {str(time_polly).center(25)}"
-               f" | {check_str.center(25)} |"))
+               f" | {check_str.center(36)} |"))
         display_row_line(verif)
     else:
         print((f"| {str(kernel).center(25)} | "
@@ -270,10 +271,13 @@ def run_verif(kernel_dir,
             make_command = f"make -j {kernel}"
             run_command(make_command, os.path.join(
                 kernel_output_path, f"{kernel}_{version}.compile"))
-            print(f"{COLOR[YELLOW]}\rRunning {kernel} "
-                  f"{version} version{COLOR[NO_COLOR]}\r", end="")
-            exec_command = f"{ARGS_ENV} {build}/{kernel_dir}/{kernel}/{kernel}"
-            # time.sleep(0.3)
+            print(f"{COLOR[YELLOW]}\rRunning {kernel} {
+                  version} version{COLOR[NO_COLOR]}\r", end="")
+            exec_command = (
+                f"{ARGS_ENV} {build}/{kernel_dir}/"
+                f"{kernel}/{kernel}"
+            )
+
             run_command(exec_command,
                         os.path.join(kernel_output_path,
                                      f"{kernel}_{version}.time"),
@@ -311,8 +315,10 @@ def run_bench(kernel_dir,
                 print(f"\r\033[K{COLOR[YELLOW]}Running {kernel} "
                       f"{version} version (iteration {i+1}/{nb_iteration})"
                       f"{COLOR[NO_COLOR]}", end="")
-                exec_command = f"{ARGS_ENV} "
-                f"{build}/{kernel_dir}/{kernel}/{kernel}"
+                exec_command = (
+                    f"{ARGS_ENV} {build}/{kernel_dir}/"
+                    f"{kernel}/{kernel}"
+                )
 
                 time_file = os.path.join(kernel_output_path,
                                          f"{kernel}_{version}.time")
@@ -350,7 +356,7 @@ def main():
     os.makedirs(build_polly, exist_ok=True)
 
     datasets = {
-        "datamining": ["covariance"],
+        # "datamining": ["covariance"],
         "linear-algebra/blas": ["gemm", "gemver", "gesummv", "symm", "syr2k",
                                 "syrk", "trmm"],
         "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
