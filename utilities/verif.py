@@ -46,6 +46,8 @@ def parse_args():
                         help="Polybench directory")
     parser.add_argument("--process_dir", type=str, required=True,
                         help="Polybench execution directory")
+    parser.add_argument("--GPU", type=int, default=0, required=True,
+                        help="Run polybench on GPU (1) or CPU (0)")
     args = parser.parse_args()
     return args
 
@@ -208,7 +210,8 @@ def generate_build_file(polybench_dir,
                         cxx_compiler,
                         kokkos_install_dir,
                         dataset,
-                        verif):
+                        verif,
+                        GPU):
     print_output = "ON" if verif else "OFF"
 
     cmake_command_base = (
@@ -236,7 +239,9 @@ def generate_build_file(polybench_dir,
                                                  f"-DPB_KOKKOS_DIR="
                                                  f"{kokkos_install_dir} "
                                                  f"-DKokkos_ENABLE_SERIAL=ON "
-                                                 f"-DKokkos_ENABLE_OPENMP=ON")
+                                                 f"-DKokkos_ENABLE_OPENMP=ON ")
+    if (GPU):
+        cmake_command_kokkos = cmake_command_kokkos + "-DPB_GPU=ON"
     run_command(cmake_command_kokkos, os.path.join(
         output_dir, "cmake_kokkos.log"))
 
@@ -248,7 +253,9 @@ def generate_build_file(polybench_dir,
                                                 f"-DPB_KOKKOS_DIR="
                                                 f"{kokkos_install_dir} "
                                                 f"-DPB_USE_POLLY=ON "
-                                                f"-DKokkos_ENABLE_SERIAL=ON")
+                                                f"-DKokkos_ENABLE_SERIAL=ON ")
+    if (GPU):
+        cmake_command_polly = cmake_command_polly + "-DPB_GPU=ON"
     run_command(cmake_command_polly, os.path.join(
         output_dir, "cmake_polly.log"))
 
@@ -371,7 +378,7 @@ def main():
     generate_build_file(polybench_dir, output_dir,
                         build_std, build_kokkos, build_polly,
                         args.cxx_compiler, args.kokkos_install_dir,
-                        args.dataset, args.verif)
+                        args.dataset, args.verif, args.GPU)
 
     for kernel_dir, kernels in datasets.items():
         display_row_title(args.verif, kernel_dir)
