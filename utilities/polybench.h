@@ -84,17 +84,17 @@
   Kokkos::finalize();
 
 #define ARRAY_1D_FUNC_PARAM(type, var, dim1, ddim1)                            \
-  Kokkos::View<#var, type *> &var
+  Kokkos::View<#var, type *, Kokkos::HostSpace> &var
 #define ARRAY_2D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2)               \
-  Kokkos::View<#var, type **> &var
+  Kokkos::View<#var, type **, Kokkos::HostSpace> &var
 #define ARRAY_3D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3)  \
-  Kokkos::View<#var, type ***> &var
+  Kokkos::View<#var, type ***, Kokkos::HostSpace> &var
 #define ARRAY_4D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
                             dim4, ddim4)                                       \
-  Kokkos::View<#var, type ****> &var
+  Kokkos::View<#var, type ****, Kokkos::HostSpace> &var
 #define ARRAY_5D_FUNC_PARAM(type, var, dim1, ddim1, dim2, ddim2, dim3, ddim3,  \
                             dim4, ddim4, dim5, ddim5)                          \
-  Kokkos::View<#var, type ****> &var
+  Kokkos::View<#var, type ****, Kokkos::HostSpace> &var
 
 #define ARRAY_1D_ACCESS(var, i) var(i)
 #define ARRAY_2D_ACCESS(var, i, j) var(i, j)
@@ -261,24 +261,26 @@
                       ddim1, ddim2, ddim3, ddim4, ddim5);
 #elif defined(POLYBENCH_KOKKOS)
 #define POLYBENCH_1D_ARRAY_DECL(var, type, dim1, ddim1)                        \
-  Kokkos::View<#var, type *> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1));
+  Kokkos::View<#var, type *, Kokkos::HostSpace> var(                           \
+      #var, POLYBENCH_C99_SELECT(dim1, ddim1));
 #define POLYBENCH_2D_ARRAY_DECL(var, type, dim1, dim2, ddim1, ddim2)           \
-  Kokkos::View<#var, type **> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1),     \
-                                  POLYBENCH_C99_SELECT(dim2, ddim2));
+  Kokkos::View<#var, type **, Kokkos::HostSpace> var(                          \
+      #var, POLYBENCH_C99_SELECT(dim1, ddim1),                                 \
+      POLYBENCH_C99_SELECT(dim2, ddim2));
 #define POLYBENCH_3D_ARRAY_DECL(var, type, dim1, dim2, dim3, ddim1, ddim2,     \
                                 ddim3)                                         \
-  Kokkos::View<#var, type ***> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1),    \
-                                   POLYBENCH_C99_SELECT(dim2, ddim2),          \
-                                   POLYBENCH_C99_SELECT(dim3, ddim3));
+  Kokkos::View<#var, type ***, Kokkos::HostSpace> var(                         \
+      #var, POLYBENCH_C99_SELECT(dim1, ddim1),                                 \
+      POLYBENCH_C99_SELECT(dim2, ddim2), POLYBENCH_C99_SELECT(dim3, ddim3));
 #define POLYBENCH_4D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, ddim1,      \
                                 ddim2, ddim3, ddim4)                           \
-  Kokkos::View<#var, type ****> var(#var, POLYBENCH_C99_SELECT(dim1, ddim1),   \
-                                    POLYBENCH_C99_SELECT(dim2, ddim2),         \
-                                    POLYBENCH_C99_SELECT(dim3, ddim3),         \
-                                    POLYBENCH_C99_SELECT(dim4, ddim4));
+  Kokkos::View<#var, type ****, Kokkos::HostSpace> var(                        \
+      #var, POLYBENCH_C99_SELECT(dim1, ddim1),                                 \
+      POLYBENCH_C99_SELECT(dim2, ddim2), POLYBENCH_C99_SELECT(dim3, ddim3),    \
+      POLYBENCH_C99_SELECT(dim4, ddim4));
 #define POLYBENCH_5D_ARRAY_DECL(var, type, dim1, dim2, dim3, dim4, dim5,       \
                                 ddim1, ddim2, ddim3, ddim4, ddim5)             \
-  Kokkos::View<#var, type *****> var(                                          \
+  Kokkos::View<#var, type *****, Kokkos::HostSpace> var(                       \
       #var, POLYBENCH_C99_SELECT(dim1, ddim1),                                 \
       POLYBENCH_C99_SELECT(dim2, ddim2), POLYBENCH_C99_SELECT(dim3, ddim3),    \
       POLYBENCH_C99_SELECT(dim4, ddim4), POLYBENCH_C99_SELECT(dim5, ddim5));
@@ -398,3 +400,85 @@ extern void polybench_free_data(void *ptr);
 /* approaches. */
 extern void polybench_flush_cache();
 extern void polybench_prepare_instruments();
+
+#if defined(POLYBENCH_KOKKOS)
+#define polybench_GPU_array_1D(original_name, n)                               \
+  Kokkos::View<"d_" #original_name, DATA_TYPE *, Kokkos::LayoutLeft,           \
+               Kokkos::CudaSpace>                                              \
+      d_##original_name("d_" #original_name, n);                               \
+  auto h_mirror_##original_name =                                              \
+      Kokkos::create_mirror_view(d_##original_name);                           \
+                                                                               \
+  for (INT_TYPE i = 0; i < n; ++i) {                                           \
+    h_mirror_##original_name(i) = original_name(i);                            \
+  }
+
+#define polybench_GPU_array_2D(original_name, ni, nj)                          \
+  Kokkos::View<"d_" #original_name, DATA_TYPE **, Kokkos::LayoutLeft,          \
+               Kokkos::CudaSpace>                                              \
+      d_##original_name("d_" #original_name, ni, nj);                          \
+  auto h_mirror_##original_name =                                              \
+      Kokkos::create_mirror_view(d_##original_name);                           \
+                                                                               \
+  for (INT_TYPE i = 0; i < ni; ++i) {                                          \
+    for (INT_TYPE j = 0; j < nj; ++j) {                                        \
+      h_mirror_##original_name(i, j) = original_name(i, j);                    \
+    }                                                                          \
+  }
+
+#define polybench_GPU_array_3D(original_name, ni, nj, nk)                      \
+  Kokkos::View<"d_" #original_name, DATA_TYPE ***, Kokkos::LayoutLeft,         \
+               Kokkos::CudaSpace>                                              \
+      d_##original_name("d_" #original_name, ni, nj, nk);                      \
+  auto h_mirror_##original_name =                                              \
+      Kokkos::create_mirror_view(d_##original_name);                           \
+                                                                               \
+  for (INT_TYPE i = 0; i < ni; ++i) {                                          \
+    for (INT_TYPE j = 0; j < nj; ++j) {                                        \
+      for (INT_TYPE k = 0; k < nk; ++k) {                                      \
+        h_mirror_##original_name(i, j, k) = original_name(i, j, k);            \
+      }                                                                        \
+    }                                                                          \
+  }
+#endif
+
+#if defined(POLYBENCH_KOKKOS)
+#define polybench_GPU_array_copy_to_device(original_name)                      \
+  Kokkos::deep_copy(d_##original_name, h_mirror_##original_name);
+
+#define polybench_GPU_array_copy_from_device_1D_with_stop_instrucment(         \
+    original_name, n)                                                          \
+  Kokkos::deep_copy(h_mirror_##original_name, d_##original_name);              \
+                                                                               \
+  polybench_stop_instruments;                                                  \
+                                                                               \
+  for (INT_TYPE i = 0; i < n; ++i) {                                           \
+    original_name(i) = h_mirror_##original_name(i);                            \
+  }
+
+#define polybench_GPU_array_copy_from_device_2D_with_stop_instrucment(         \
+    original_name, ni, nj)                                                     \
+  Kokkos::deep_copy(h_mirror_##original_name, d_##original_name);              \
+                                                                               \
+  polybench_stop_instruments;                                                  \
+                                                                               \
+  for (INT_TYPE i = 0; i < ni; ++i) {                                          \
+    for (INT_TYPE j = 0; j < nj; ++j) {                                        \
+      original_name(i, j) = h_mirror_##original_name(i, j);                    \
+    }                                                                          \
+  }
+
+#define polybench_GPU_array_copy_from_device_3D_with_stop_instrucment(         \
+    original_name, ni, nj, nk)                                                 \
+  Kokkos::deep_copy(h_mirror_##original_name, d_##original_name);              \
+                                                                               \
+  polybench_stop_instruments;                                                  \
+                                                                               \
+  for (INT_TYPE i = 0; i < ni; ++i) {                                          \
+    for (INT_TYPE j = 0; j < nj; ++j) {                                        \
+      for (INT_TYPE k = 0; k < nk; ++k) {                                      \
+        original_name(i, j, k) = h_mirror_##original_name(i, j, k);            \
+      }                                                                        \
+    }                                                                          \
+  }
+#endif
