@@ -20,18 +20,18 @@
 #include "durbin.h"
 
 /* Array initialization. */
-static void init_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n)) {
-  for (int i = 0; i < n; i++) {
+static void init_array(INT_TYPE n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n)) {
+  for (INT_TYPE i = 0; i < n; i++) {
     ARRAY_1D_ACCESS(r, i) = (n + 1 - i);
   }
 }
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
-static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
+static void print_array(INT_TYPE n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("y");
-  for (int i = 0; i < n; i++) {
+  for (INT_TYPE i = 0; i < n; i++) {
     if (i % 20 == 0)
       fprintf(POLYBENCH_DUMP_TARGET, "\n");
     fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER, ARRAY_1D_ACCESS(y, i));
@@ -42,7 +42,7 @@ static void print_array(int n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
+static void kernel_durbin(INT_TYPE n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
                           ARRAY_1D_FUNC_PARAM(DATA_TYPE, y, N, n)) {
 #if defined(POLYBENCH_USE_POLLY)
   POLYBENCH_1D_ARRAY_DECL(z, DATA_TYPE, N, n);
@@ -56,24 +56,31 @@ static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   *beta_ptr = SCALAR_VAL(1.0);
   *alpha_ptr = -r[0];
 
+  polybench_start_instruments;
+#if not defined(POLYBENCH_GPU) // CPU
   const auto policy_1D = Kokkos::RangePolicy<Kokkos::OpenMP>(1, n);
+#else // GPU
+  const auto policy_1D =
+      Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(1, n);
+#endif
   Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 1">(
-      policy_1D, KOKKOS_LAMBDA(const size_t k) {
+      policy_1D, KOKKOS_LAMBDA(const INT_TYPE k) {
         *beta_ptr = (1 - *alpha_ptr * *alpha_ptr) * *beta_ptr;
         DATA_TYPE sum = SCALAR_VAL(0.0);
-        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
+        for (INT_TYPE i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
           sum += r(k - i - 1) * y(i);
         }
         *alpha_ptr = -(r[k] + sum) / *beta_ptr;
 
-        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
+        for (INT_TYPE i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
           z[i] = y[i] + *alpha_ptr * y[k - i - 1];
         }
-        for (size_t i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
+        for (INT_TYPE i = 0; i < KOKKOS_LOOP_BOUND(k); i++) {
           y[i] = z[i];
         }
         y[k] = *alpha_ptr;
       });
+  polybench_stop_instruments;
 #elif defined(POLYBENCH_KOKKOS)
   POLYBENCH_1D_ARRAY_DECL(z, DATA_TYPE, N, n);
   DATA_TYPE alpha;
@@ -81,14 +88,17 @@ static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
 
   y(0) = -r(0);
   beta = SCALAR_VAL(1.0);
-  alpha = -r[0];
-  for (size_t k = 1; k < n; k++) {
+  alpha = -r(0);
+
+#if not defined(POLYBENCH_GPU) // CPU
+  polybench_start_instruments;
+  for (INT_TYPE k = 1; k < n; k++) {
     beta = (1 - alpha * alpha) * beta;
 
     DATA_TYPE sum = SCALAR_VAL(0.0);
     Kokkos::parallel_reduce(
         Kokkos::RangePolicy<Kokkos::OpenMP>(0, k),
-        KOKKOS_LAMBDA(size_t i, DATA_TYPE &partial_sum) {
+        KOKKOS_LAMBDA(INT_TYPE i, DATA_TYPE & partial_sum) {
           partial_sum += r(k - i - 1) * y(i);
         },
         sum);
@@ -97,14 +107,65 @@ static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
 
     Kokkos::parallel_for(
         Kokkos::RangePolicy<Kokkos::OpenMP>(0, k),
-        KOKKOS_LAMBDA(size_t i) { z(i) = y(i) + alpha * y(k - i - 1); });
+        KOKKOS_LAMBDA(INT_TYPE i) { z(i) = y(i) + alpha * y(k - i - 1); });
 
     Kokkos::parallel_for(
         Kokkos::RangePolicy<Kokkos::OpenMP>(0, k),
-        KOKKOS_LAMBDA(size_t i) { y(i) = z(i); });
+        KOKKOS_LAMBDA(INT_TYPE i) { y(i) = z(i); });
 
     y(k) = alpha;
   }
+  polybench_stop_instruments;
+#else                          // GPU
+  polybench_GPU_array_1D(r, n);
+  polybench_GPU_array_1D(y, n);
+  polybench_GPU_array_1D(z, n);
+
+  polybench_start_instruments;
+
+  polybench_GPU_array_copy_to_device(r);
+  polybench_GPU_array_copy_to_device(y);
+
+  const auto policy =
+      Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, 1);
+
+  Kokkos::parallel_for(
+      policy, KOKKOS_LAMBDA(const INT_TYPE thread_id) {
+        DATA_TYPE alpha = -d_r(0);
+        DATA_TYPE beta = SCALAR_VAL(1.0);
+        d_y(0) = -d_r(0);
+
+        for (INT_TYPE k = 1; k < n; k++) {
+          beta = (SCALAR_VAL(1.0) - alpha * alpha) * beta;
+
+          DATA_TYPE sum = SCALAR_VAL(0.0);
+          for (INT_TYPE i = 0; i < k; i++) {
+            sum += d_r(k - i - 1) * d_y(i);
+          }
+
+          alpha = -(d_r(k) + sum) / beta;
+
+          for (INT_TYPE i = 0; i < k; i++) {
+            d_z(i) = d_y(i) + alpha * d_y(k - i - 1);
+          }
+
+          for (INT_TYPE i = 0; i < k; i++) {
+            d_y(i) = d_z(i);
+          }
+
+          d_y(k) = alpha;
+        }
+      });
+
+  polybench_GPU_array_copy_to_host(y);
+  polybench_GPU_array_copy_to_host(z);
+
+  polybench_stop_instruments;
+
+  polybench_GPU_array_sync_1D(y, n);
+  polybench_GPU_array_sync_1D(z, n);
+
+#endif
 #else
   DATA_TYPE z[N];
   DATA_TYPE alpha;
@@ -115,24 +176,26 @@ static void kernel_durbin(size_t n, ARRAY_1D_FUNC_PARAM(DATA_TYPE, r, N, n),
   beta = SCALAR_VAL(1.0);
   alpha = -r[0];
 
+  polybench_start_instruments;
 #pragma scop
-  for (size_t k = 1; k < n; k++) {
+  for (INT_TYPE k = 1; k < n; k++) {
     beta = (1 - alpha * alpha) * beta;
     sum = SCALAR_VAL(0.0);
-    for (size_t i = 0; i < k; i++) {
+    for (INT_TYPE i = 0; i < k; i++) {
       sum += r[k - i - 1] * y[i];
     }
     alpha = -(r[k] + sum) / beta;
 
-    for (size_t i = 0; i < k; i++) {
+    for (INT_TYPE i = 0; i < k; i++) {
       z[i] = y[i] + alpha * y[k - i - 1];
     }
-    for (size_t i = 0; i < k; i++) {
+    for (INT_TYPE i = 0; i < k; i++) {
       y[i] = z[i];
     }
     y[k] = alpha;
   }
 #pragma endscop
+  polybench_stop_instruments;
 #endif
 }
 
@@ -140,7 +203,7 @@ int main(int argc, char **argv) {
   INITIALIZE;
 
   /* Retrieve problem size. */
-  int n = N;
+  INT_TYPE n = N;
 
   /* Variable declaration/allocation. */
   POLYBENCH_1D_ARRAY_DECL(r, DATA_TYPE, N, n);
@@ -149,14 +212,9 @@ int main(int argc, char **argv) {
   /* Initialize array(s). */
   init_array(n, POLYBENCH_ARRAY(r));
 
-  /* Start timer. */
-  polybench_start_instruments;
-
   /* Run kernel. */
   kernel_durbin(n, POLYBENCH_ARRAY(r), POLYBENCH_ARRAY(y));
 
-  /* Stop and print timer. */
-  polybench_stop_instruments;
   polybench_print_instruments;
 
   /* Prevent dead-code elimination. All live-out data must be printed

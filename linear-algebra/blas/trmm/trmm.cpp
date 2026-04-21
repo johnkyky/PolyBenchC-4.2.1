@@ -20,16 +20,16 @@
 #include "trmm.h"
 
 /* Array initialization. */
-static void init_array(int m, int n, DATA_TYPE *alpha,
+static void init_array(INT_TYPE m, INT_TYPE n, DATA_TYPE *alpha,
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, M, M, m, m),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, M, N, m, n)) {
   *alpha = 1.5;
-  for (int i = 0; i < m; i++) {
-    for (int j = 0; j < i; j++) {
+  for (INT_TYPE i = 0; i < m; i++) {
+    for (INT_TYPE j = 0; j < i; j++) {
       ARRAY_2D_ACCESS(A, i, j) = (DATA_TYPE)((i + j) % m) / m;
     }
     ARRAY_2D_ACCESS(A, i, i) = 1.0;
-    for (int j = 0; j < n; j++) {
+    for (INT_TYPE j = 0; j < n; j++) {
       ARRAY_2D_ACCESS(B, i, j) = (DATA_TYPE)((n + (i - j)) % n) / n;
     }
   }
@@ -37,12 +37,12 @@ static void init_array(int m, int n, DATA_TYPE *alpha,
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
-static void print_array(int m, int n,
+static void print_array(INT_TYPE m, INT_TYPE n,
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, M, N, m, n)) {
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("B");
-  for (int i = 0; i < m; i++)
-    for (int j = 0; j < n; j++) {
+  for (INT_TYPE i = 0; i < m; i++)
+    for (INT_TYPE j = 0; j < n; j++) {
       if ((i * m + j) % 20 == 0)
         fprintf(POLYBENCH_DUMP_TARGET, "\n");
       fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
@@ -54,7 +54,7 @@ static void print_array(int m, int n,
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_trmm(size_t m, size_t n, DATA_TYPE alpha,
+static void kernel_trmm(INT_TYPE m, INT_TYPE n, DATA_TYPE alpha,
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, M, M, m, m),
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, B, M, N, m, n)) {
 // BLAS parameters
@@ -66,44 +66,84 @@ static void kernel_trmm(size_t m, size_t n, DATA_TYPE alpha,
 //  A is MxM
 //  B is MxN
 #if defined(POLYBENCH_USE_POLLY)
+  polybench_start_instruments;
+#if not defined(POLYBENCH_GPU) // CPU
   const auto policy =
       Kokkos::MDRangePolicy<Kokkos::OpenMP, Kokkos::Rank<2>>({0, 0}, {m, n});
-
+#else // GPU
+  const auto policy =
+      Kokkos::MDRangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>,
+                            Kokkos::Rank<2>>({0, 0}, {m, n});
+#endif
   Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l == 0, p0.u0 == m, p0.u0 > 10">(
-      policy, KOKKOS_LAMBDA(const size_t i, const size_t j) {
-        for (size_t k = i + 1; k < KOKKOS_LOOP_BOUND(m); k++)
+      policy, KOKKOS_LAMBDA(const INT_TYPE i, const INT_TYPE j) {
+        for (INT_TYPE k = i + 1; k < KOKKOS_LOOP_BOUND(m); k++)
           B(i, j) += A(k, i) * B(k, j);
         B(i, j) = alpha * B(i, j);
       });
+  polybench_stop_instruments;
 #elif defined(POLYBENCH_KOKKOS)
+#if not defined(POLYBENCH_GPU) // CPU
+  polybench_start_instruments;
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
-  for (size_t i = 0; i < m; i++) {
+  for (INT_TYPE i = 0; i < m; i++) {
     Kokkos::parallel_for(
-        policy, KOKKOS_LAMBDA(const size_t j) {
-          for (size_t k = i + 1; k < m; k++) {
+        policy, KOKKOS_LAMBDA(const INT_TYPE j) {
+          for (INT_TYPE k = i + 1; k < m; k++) {
             B(i, j) += A(k, i) * B(k, j);
           }
           B(i, j) = alpha * B(i, j);
         });
   }
+  polybench_stop_instruments;
+#else                          // GPU
+  polybench_GPU_array_2D(A, m, m);
+  polybench_GPU_array_2D(B, m, n);
+
+  polybench_start_instruments;
+
+  polybench_GPU_array_copy_to_device(A);
+  polybench_GPU_array_copy_to_device(B);
+
+  const auto policy_gpu =
+      Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, n);
+
+  Kokkos::parallel_for(
+      policy_gpu, KOKKOS_LAMBDA(const INT_TYPE j) {
+        for (INT_TYPE i = 0; i < m; i++) {
+          for (INT_TYPE k = i + 1; k < m; k++) {
+            d_B(i, j) += d_A(k, i) * d_B(k, j);
+          }
+          d_B(i, j) = alpha * d_B(i, j);
+        }
+      });
+
+  polybench_GPU_array_copy_to_host(B);
+
+  polybench_stop_instruments;
+
+  polybench_GPU_array_sync_2D(B, m, n);
+#endif
 #else
+  polybench_start_instruments;
 #pragma scop
-  for (size_t i = 0; i < m; i++) {
-    for (size_t j = 0; j < n; j++) {
-      for (size_t k = i + 1; k < m; k++)
+  for (INT_TYPE i = 0; i < m; i++) {
+    for (INT_TYPE j = 0; j < n; j++) {
+      for (INT_TYPE k = i + 1; k < m; k++)
         B[i][j] += A[k][i] * B[k][j];
       B[i][j] = alpha * B[i][j];
     }
   }
 #pragma endscop
+  polybench_stop_instruments;
 #endif
 }
 
 int main(int argc, char **argv) {
   INITIALIZE;
   /* Retrieve problem size. */
-  int m = M;
-  int n = N;
+  INT_TYPE m = M;
+  INT_TYPE n = N;
 
   /* Variable declaration/allocation. */
   DATA_TYPE alpha;
@@ -113,14 +153,9 @@ int main(int argc, char **argv) {
   /* Initialize array(s). */
   init_array(m, n, &alpha, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(B));
 
-  /* Start timer. */
-  polybench_start_instruments;
-
   /* Run kernel. */
   kernel_trmm(m, n, alpha, POLYBENCH_ARRAY(A), POLYBENCH_ARRAY(B));
 
-  /* Stop and print timer. */
-  polybench_stop_instruments;
   polybench_print_instruments;
 
   /* Prevent dead-code elimination. All live-out data must be printed

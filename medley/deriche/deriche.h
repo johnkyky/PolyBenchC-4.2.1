@@ -78,4 +78,12 @@
 #define POW_FUN(x, y) pow(x, y)
 #endif
 
+// #ifdef POLYBENCH_GPU
+#define INT_TYPE unsigned long
+#define SINT_TYPE long long
+// #else
+// #define INT_TYPE unsigned long
+// #define SINT_TYPE long
+// #endif
+
 #endif /* !_DERICHE_H */

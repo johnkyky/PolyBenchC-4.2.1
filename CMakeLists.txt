@@ -22,6 +22,7 @@ set(PB_KOKKOS_DIR
     ""
     CACHE STRING "Set the install directory of Kokkos")
 option(PB_USE_POLLY "Use polly" OFF)
+option(PB_GPU "Use GPU" OFF)
 
 if(PB_TIME_MONITORING)
   add_definitions(-DPOLYBENCH_TIME)
@@ -127,7 +128,7 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     # "SHELL:-mllvm -polly-detect-reductions=false"
     "SHELL:-mllvm -polly-dependences-computeout=0"
     "SHELL:-mllvm -polly-schedule-computeout=0"
-    "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-remove-loop-bound-condition,polly-triangular-loop-fix,polly-remove-loop-versioning,polly-var-fusion,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter,polly-array-reg2mem,polly-merge-redundant-invariant-loads,polly-lower-instruction-for-reduction"
+    "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-remove-loop-bound-condition,polly-triangular-loop-fix,polly-remove-loop-versioning,polly-var-fusion,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter,polly-array-reg2mem,polly-merge-redundant-invariant-loads,polly-lower-instruction-for-reduction,polly-codegen-ppcg"
     
     "SHELL:-mllvm -polly-disable-multiplicative-reductions"
     # "SHELL:-mllvm -polly-ast-print-accesses"
@@ -139,6 +140,15 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     "-fno-math-errno"
     # "-g"
   )
+endif()
+
+if(PB_GPU)
+  add_definitions(-DPOLYBENCH_GPU)
+  message(STATUS "GPU enabled")
+  link_directories(PRIVATE "/home/johnkyky/Documents/Phd_project/llvm/install/lib")
+  link_libraries(GPURuntime cuda dl)
+else()
+  message(STATUS "GPU disabled")
 endif()
 
 add_subdirectory(utilities)

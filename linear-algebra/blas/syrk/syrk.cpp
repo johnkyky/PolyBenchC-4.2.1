@@ -20,26 +20,28 @@
 #include "syrk.h"
 
 /* Array initialization. */
-static void init_array(int n, int m, DATA_TYPE *alpha, DATA_TYPE *beta,
+static void init_array(INT_TYPE n, INT_TYPE m, DATA_TYPE *alpha,
+                       DATA_TYPE *beta,
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, N, N, n, n),
                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, M, n, m)) {
   *alpha = 1.5;
   *beta = 1.2;
-  for (int i = 0; i < n; i++)
-    for (int j = 0; j < m; j++)
+  for (INT_TYPE i = 0; i < n; i++)
+    for (INT_TYPE j = 0; j < m; j++)
       ARRAY_2D_ACCESS(A, i, j) = (DATA_TYPE)((i * j + 1) % n) / n;
-  for (int i = 0; i < n; i++)
-    for (int j = 0; j < n; j++)
+  for (INT_TYPE i = 0; i < n; i++)
+    for (INT_TYPE j = 0; j < n; j++)
       ARRAY_2D_ACCESS(C, i, j) = (DATA_TYPE)((i * j + 2) % m) / m;
 }
 
 /* DCE code. Must scan the entire live-out data.
    Can be used also to check the correctness of the output. */
-static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, N, N, n, n)) {
+static void print_array(INT_TYPE n,
+                        ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, N, N, n, n)) {
   POLYBENCH_DUMP_START;
   POLYBENCH_DUMP_BEGIN("C");
-  for (int i = 0; i < n; i++)
-    for (int j = 0; j < n; j++) {
+  for (INT_TYPE i = 0; i < n; i++)
+    for (INT_TYPE j = 0; j < n; j++) {
       if ((i * n + j) % 20 == 0)
         fprintf(POLYBENCH_DUMP_TARGET, "\n");
       fprintf(POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER,
@@ -51,7 +53,7 @@ static void print_array(int n, ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, N, N, n, n)) {
 
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
-static void kernel_syrk(size_t n, size_t m, DATA_TYPE alpha, DATA_TYPE beta,
+static void kernel_syrk(INT_TYPE n, INT_TYPE m, DATA_TYPE alpha, DATA_TYPE beta,
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, C, N, N, n, n),
                         ARRAY_2D_FUNC_PARAM(DATA_TYPE, A, N, M, n, m)) {
 // BLAS PARAMS
@@ -61,41 +63,81 @@ static void kernel_syrk(size_t n, size_t m, DATA_TYPE alpha, DATA_TYPE beta,
 // A is NxM
 // C is NxN
 #if defined(POLYBENCH_USE_POLLY)
+  polybench_start_instruments;
+#if not defined(POLYBENCH_GPU) // CPU
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
-
-  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0 == 0">(
-      policy, KOKKOS_LAMBDA(const size_t i) {
-        for (size_t j = 0; j <= i; j++)
+#else // GPU
+  const auto policy =
+      Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, n);
+#endif
+  Kokkos::parallel_for<Kokkos::usePolyOpt, "p0.l0==0">(
+      policy, KOKKOS_LAMBDA(const INT_TYPE i) {
+        for (INT_TYPE j = 0; j <= i; j++)
           C(i, j) *= beta;
-        for (size_t k = 0; k < KOKKOS_LOOP_BOUND(m); k++) {
-          for (size_t j = 0; j <= i; j++)
+        for (INT_TYPE k = 0; k < KOKKOS_LOOP_BOUND(m); k++) {
+          for (INT_TYPE j = 0; j <= i; j++)
             C(i, j) += alpha * A(i, k) * A(j, k);
         }
       });
-
+  polybench_stop_instruments;
 #elif defined(POLYBENCH_KOKKOS)
+#if not defined(POLYBENCH_GPU) // CPU
+  polybench_start_instruments;
   const auto policy = Kokkos::RangePolicy<Kokkos::OpenMP>(0, n);
 
   Kokkos::parallel_for(
-      policy, KOKKOS_LAMBDA(const size_t i) {
-        for (size_t j = 0; j <= i; j++)
+      policy, KOKKOS_LAMBDA(const INT_TYPE i) {
+        for (INT_TYPE j = 0; j <= i; j++)
           C(i, j) *= beta;
-        for (size_t k = 0; k < m; k++) {
-          for (size_t j = 0; j <= i; j++)
+        for (INT_TYPE k = 0; k < m; k++) {
+          for (INT_TYPE j = 0; j <= i; j++)
             C(i, j) += alpha * A(i, k) * A(j, k);
         }
       });
+  polybench_stop_instruments;
+#else                          // GPU
+  polybench_GPU_array_2D(A, n, m);
+  polybench_GPU_array_2D(C, n, n);
+
+  polybench_start_instruments;
+
+  polybench_GPU_array_copy_to_device(A);
+  polybench_GPU_array_copy_to_device(C);
+
+  const auto policy_gpu =
+      Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, n);
+
+  Kokkos::parallel_for(
+      policy_gpu, KOKKOS_LAMBDA(const INT_TYPE i) {
+        for (INT_TYPE j = 0; j <= i; j++)
+          d_C(i, j) *= beta;
+
+        for (INT_TYPE k = 0; k < m; k++) {
+          for (INT_TYPE j = 0; j <= i; j++) {
+            d_C(i, j) += alpha * d_A(i, k) * d_A(j, k);
+          }
+        }
+      });
+
+  polybench_GPU_array_copy_to_host(C);
+
+  polybench_stop_instruments;
+
+  polybench_GPU_array_sync_2D(C, n, n);
+#endif
 #else
+  polybench_start_instruments;
 #pragma scop
-  for (size_t i = 0; i < n; i++) {
-    for (size_t j = 0; j <= i; j++)
+  for (INT_TYPE i = 0; i < n; i++) {
+    for (INT_TYPE j = 0; j <= i; j++)
       C[i][j] *= beta;
-    for (size_t k = 0; k < m; k++) {
-      for (size_t j = 0; j <= i; j++)
+    for (INT_TYPE k = 0; k < m; k++) {
+      for (INT_TYPE j = 0; j <= i; j++)
         C[i][j] += alpha * A[i][k] * A[j][k];
     }
   }
 #pragma endscop
+  polybench_stop_instruments;
 #endif
 }
 
@@ -103,8 +145,8 @@ int main(int argc, char **argv) {
   INITIALIZE;
 
   /* Retrieve problem size. */
-  int n = N;
-  int m = M;
+  INT_TYPE n = N;
+  INT_TYPE m = M;
 
   /* Variable declaration/allocation. */
   DATA_TYPE alpha;
@@ -115,14 +157,9 @@ int main(int argc, char **argv) {
   /* Initialize array(s). */
   init_array(n, m, &alpha, &beta, POLYBENCH_ARRAY(C), POLYBENCH_ARRAY(A));
 
-  /* Start timer. */
-  polybench_start_instruments;
-
   /* Run kernel. */
   kernel_syrk(n, m, alpha, beta, POLYBENCH_ARRAY(C), POLYBENCH_ARRAY(A));
 
-  /* Stop and print timer. */
-  polybench_stop_instruments;
   polybench_print_instruments;
 
   /* Prevent dead-code elimination. All live-out data must be printed

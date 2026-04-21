@@ -78,4 +78,10 @@
 #define POW_FUN(x, y) pow(x, y)
 #endif
 
+// #ifdef POLYBENCH_GPU
+#define INT_TYPE unsigned long
+// #else
+// #define INT_TYPE unsigned long
+// #endif
+
 #endif /* !_SYRK_H */

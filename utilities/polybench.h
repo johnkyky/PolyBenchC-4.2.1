@@ -446,34 +446,22 @@ extern void polybench_prepare_instruments();
 #define polybench_GPU_array_copy_to_device(original_name)                      \
   Kokkos::deep_copy(d_##original_name, h_mirror_##original_name);
 
-#define polybench_GPU_array_copy_from_device_1D_with_stop_instrucment(         \
-    original_name, n)                                                          \
-  Kokkos::deep_copy(h_mirror_##original_name, d_##original_name);              \
-                                                                               \
-  polybench_stop_instruments;                                                  \
-                                                                               \
+#define polybench_GPU_array_copy_to_host(original_name)                        \
+  Kokkos::deep_copy(h_mirror_##original_name, d_##original_name);
+
+#define polybench_GPU_array_sync_1D(original_name, n)                          \
   for (INT_TYPE i = 0; i < n; ++i) {                                           \
     original_name(i) = h_mirror_##original_name(i);                            \
   }
 
-#define polybench_GPU_array_copy_from_device_2D_with_stop_instrucment(         \
-    original_name, ni, nj)                                                     \
-  Kokkos::deep_copy(h_mirror_##original_name, d_##original_name);              \
-                                                                               \
-  polybench_stop_instruments;                                                  \
-                                                                               \
+#define polybench_GPU_array_sync_2D(original_name, ni, nj)                     \
   for (INT_TYPE i = 0; i < ni; ++i) {                                          \
     for (INT_TYPE j = 0; j < nj; ++j) {                                        \
       original_name(i, j) = h_mirror_##original_name(i, j);                    \
     }                                                                          \
   }
 
-#define polybench_GPU_array_copy_from_device_3D_with_stop_instrucment(         \
-    original_name, ni, nj, nk)                                                 \
-  Kokkos::deep_copy(h_mirror_##original_name, d_##original_name);              \
-                                                                               \
-  polybench_stop_instruments;                                                  \
-                                                                               \
+#define polybench_GPU_array_sync_3D(original_name, ni, nj, nk)                 \
   for (INT_TYPE i = 0; i < ni; ++i) {                                          \
     for (INT_TYPE j = 0; j < nj; ++j) {                                        \
       for (INT_TYPE k = 0; k < nk; ++k) {                                      \
