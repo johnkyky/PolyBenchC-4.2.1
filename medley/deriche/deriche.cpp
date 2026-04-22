@@ -327,7 +327,7 @@ static void kernel_deriche(INT_TYPE w, INT_TYPE h, DATA_TYPE alpha,
         d_imgOut(i, j) = c2 * (d_y1(i, j) + d_y2(i, j));
       });
 
-  polybench_GPU_array_copy_to_host(ImgOut);
+  polybench_GPU_array_copy_to_host(imgOut);
   polybench_GPU_array_copy_to_host(y1);
   polybench_GPU_array_copy_to_host(y2);
 

@@ -90,7 +90,7 @@ static void kernel_ludcmp(INT_TYPE n,
 
   Kokkos::parallel_for<
       Kokkos::usePolyOpt,
-      "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == p2., n < 10000">(
+      "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == p2., n < 1000000">(
       "kernel", policy_1D,
       KOKKOS_LAMBDA(const INT_TYPE i) {
         for (INT_TYPE j = 0; j < i; j++) {

@@ -119,6 +119,7 @@ static void kernel_symm(INT_TYPE m, INT_TYPE n, DATA_TYPE alpha, DATA_TYPE beta,
   polybench_GPU_array_2D(A, m, m);
   polybench_GPU_array_2D(B, m, n);
   polybench_GPU_array_2D(C, m, n);
+  polybench_GPU_array_2D(tmp, m, n);
 
   polybench_start_instruments;
 
@@ -143,6 +144,7 @@ static void kernel_symm(INT_TYPE m, INT_TYPE n, DATA_TYPE alpha, DATA_TYPE beta,
   }
 
   polybench_GPU_array_copy_to_host(C);
+  polybench_GPU_array_copy_to_host(tmp);
 
   polybench_stop_instruments;
 
