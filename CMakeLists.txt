@@ -22,7 +22,7 @@ set(PB_KOKKOS_DIR
     ""
     CACHE STRING "Set the install directory of Kokkos")
 option(PB_USE_POLLY "Use polly" OFF)
-option(PB_GPU "Use GPU" OFF)
+set(PB_POLLY_SCHEDULER "none" CACHE STRING "Scheduler to use with polly")
 
 if(PB_TIME_MONITORING)
   add_definitions(-DPOLYBENCH_TIME)
@@ -106,6 +106,21 @@ else()
   message(STATUS "Kokkos disabled")
 endif()
 
+string(TOLOWER ${PB_POLLY_SCHEDULER} PB_POLLY_SCHEDULER)
+if(PB_POLLY_SCHEDULER STREQUAL "none")
+  set(POLLY_SCHEDULER "none")
+elseif(PB_POLLY_SCHEDULER STREQUAL "isl")
+  set(POLLY_SCHEDULER "isl")
+elseif(PB_POLLY_SCHEDULER STREQUAL "pluto")
+  set (POLLY_SCHEDULER "pluto")
+elseif(PB_POLLY_SCHEDULER STREQUAL "ppcg")
+  set(POLLY_SCHEDULER "none")
+  set(PB_GPU ON)
+else()
+  set(POLLY_SCHEDULER "none")
+  set(PB_GPU OFF)
+endif()
+
 if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
   add_definitions(-DPOLYBENCH_USE_POLLY)
   message(STATUS "Polly enabled")
@@ -120,7 +135,7 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     # "SHELL:-mllvm -polly-opt-outer-coincidence=yes"
     # "SHELL:-mllvm -polly-parallel-force"
 
-    "SHELL:-mllvm -polly-optimizer=pluto"
+    "SHELL:-mllvm -polly-optimizer=${POLLY_SCHEDULER}"
     # "SHELL:-mllvm -polly-pluto-path=/home/battiston/Phd/pluto/install/bin/pluto"
     "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile\""
     # "SHELL:-mllvm -polly-pluto-args=\"--parallel --identity\""

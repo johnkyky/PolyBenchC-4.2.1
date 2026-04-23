@@ -37,6 +37,8 @@ def parse_args():
                         help="Number of iterations for benchmarking ignoring "
                         "for verification")
     parser.add_argument("--dataset", type=str, required=True,
+                        choices=["MINI", "SMALL", "MEDIUM",
+                                 "LARGE", "EXTRALARGE"],
                         help="Dataset size")
     parser.add_argument("--cxx_compiler", type=str, required=True,
                         help="C++ compiler")
@@ -46,8 +48,13 @@ def parse_args():
                         help="Polybench directory")
     parser.add_argument("--process_dir", type=str, required=True,
                         help="Polybench execution directory")
-    parser.add_argument("--GPU", type=int, default=0, required=True,
-                        help="Run polybench on GPU (1) or CPU (0)")
+    parser.add_argument(
+        "--scheduler",
+        type=str,
+        default="isl",
+        choices=["none", "isl", "pluto", "ppcg"],
+        help="Choose the scheduler to use for Polly"
+    )
     args = parser.parse_args()
     return args
 
@@ -211,7 +218,7 @@ def generate_build_file(polybench_dir,
                         kokkos_install_dir,
                         dataset,
                         verif,
-                        GPU):
+                        scheduler):
     print_output = "ON" if verif else "OFF"
 
     cmake_command_base = (
@@ -238,10 +245,9 @@ def generate_build_file(polybench_dir,
                                                  f"-DPB_KOKKOS=ON "
                                                  f"-DPB_KOKKOS_DIR="
                                                  f"{kokkos_install_dir} "
+                                                 f"-DPB_POLLY_SCHEDULER={scheduler} "
                                                  f"-DKokkos_ENABLE_SERIAL=ON "
                                                  f"-DKokkos_ENABLE_OPENMP=ON ")
-    if (GPU):
-        cmake_command_kokkos = cmake_command_kokkos + "-DPB_GPU=ON"
     run_command(cmake_command_kokkos, os.path.join(
         output_dir, "cmake_kokkos.log"))
 
@@ -253,9 +259,8 @@ def generate_build_file(polybench_dir,
                                                 f"-DPB_KOKKOS_DIR="
                                                 f"{kokkos_install_dir} "
                                                 f"-DPB_USE_POLLY=ON "
+                                                f"-DPB_POLLY_SCHEDULER={scheduler} "
                                                 f"-DKokkos_ENABLE_SERIAL=ON ")
-    if (GPU):
-        cmake_command_polly = cmake_command_polly + "-DPB_GPU=ON"
     run_command(cmake_command_polly, os.path.join(
         output_dir, "cmake_polly.log"))
 
@@ -344,6 +349,7 @@ def main():
     build_kokkos = os.path.join(process_dir, "build_kokkos")
     build_polly = os.path.join(process_dir, "build_polly")
     output_dir = os.path.join(process_dir, "output")
+    scheduler = args.scheduler
 
     mode = f"{args.nb_iteration} iterations" if not args.verif else "verif"
 
@@ -352,6 +358,7 @@ def main():
         f"Compiler : {args.cxx_compiler}\n"
         f"Kokkos : {args.kokkos_install_dir}\n"
         f"Dataset : {args.dataset}\n"
+        f"scheduler : {scheduler}\n"
         f"Output directory : {process_dir}"
     )
 
@@ -378,7 +385,7 @@ def main():
     generate_build_file(polybench_dir, output_dir,
                         build_std, build_kokkos, build_polly,
                         args.cxx_compiler, args.kokkos_install_dir,
-                        args.dataset, args.verif, args.GPU)
+                        args.dataset, args.verif, scheduler)
 
     for kernel_dir, kernels in datasets.items():
         display_row_title(args.verif, kernel_dir)
