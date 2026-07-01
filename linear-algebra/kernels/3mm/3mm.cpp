@@ -92,7 +92,7 @@ static void kernel_3mm(INT_TYPE ni, INT_TYPE nj, INT_TYPE nk, INT_TYPE nl,
   Kokkos::parallel_for<Kokkos::usePolyOpt,
                        "p0.l==0, p1.l==0, p2.l==0,"
                        "p0.u0== p2.u0, p0.u1==p1.u0, p1.u1==p2.u1,"
-                       // "p0.u1==nj,"
+                       "p0.u1==nj, nm>5, nk>5,"
                        "p0.u0>10, p0.u1>10, p1.u1>10">(
       "kernel", policy_2D_1,
       KOKKOS_LAMBDA(const INT_TYPE i, const INT_TYPE j) {
