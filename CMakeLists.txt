@@ -152,6 +152,10 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     # "SHELL:-mllvm -polly-codegen-emit-params-print"
     # "SHELL:-mllvm -polly-ast-print-accesses"
 
+    "SHELL:-mllvm -polly-acc-use-shared"
+    "SHELL:-mllvm -polly-acc-use-private"
+    # "SHELL:-mllvm -polly-acc-dump-code"
+
     "-fno-math-errno"
     # "-g"
   )
