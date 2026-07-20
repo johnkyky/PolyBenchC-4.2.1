@@ -156,6 +156,8 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
     "SHELL:-mllvm -polly-acc-use-private"
     # "SHELL:-mllvm -polly-acc-dump-code"
 
+    "SHELL:-mllvm -polly-matmul-opt=false"
+
     "-fno-math-errno"
     # "-g"
   )
