@@ -28,15 +28,15 @@
 #endif
 
 #ifdef MEDIUM_DATASET
-#define N 2000
+#define N 5000
 #endif
 
 #ifdef LARGE_DATASET
-#define N 10000
+#define N 20000
 #endif
 
 #ifdef EXTRALARGE_DATASET
-#define N 20000
+#define N 40000
 #endif
 
 #endif /* !(N) */
