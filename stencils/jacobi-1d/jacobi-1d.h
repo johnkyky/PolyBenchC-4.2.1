@@ -20,28 +20,28 @@
 #if !defined(TSTEPS) && !defined(N)
 /* Define sample dataset sizes. */
 #ifdef MINI_DATASET
-#define TSTEPS 10
-#define N 128
+#define TSTEPS 100
+#define N 1528
 #endif
 
 #ifdef SMALL_DATASET
-#define TSTEPS 50
-#define N 500
-#endif
-
-#ifdef MEDIUM_DATASET
-#define TSTEPS 100
-#define N 1000
-#endif
-
-#ifdef LARGE_DATASET
-#define TSTEPS 250
+#define TSTEPS 500
 #define N 10000
 #endif
 
-#ifdef EXTRALARGE_DATASET
-#define TSTEPS 500
+#ifdef MEDIUM_DATASET
+#define TSTEPS 1000
 #define N 20000
+#endif
+
+#ifdef LARGE_DATASET
+#define TSTEPS 10000
+#define N 50000
+#endif
+
+#ifdef EXTRALARGE_DATASET
+#define TSTEPS 20000
+#define N 70000
 #endif
 
 #endif /* !(TSTEPS N) */
