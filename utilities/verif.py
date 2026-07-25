@@ -62,67 +62,145 @@ def parse_args():
     return args
 
 
-def display_row_line(verif):
+def display_row_line(verif, polly_vanilla):
     if verif:
-        print("\r\033[K+" + "-" * 27 + "+" + "-" * 27 +
-              "+" + "-" * 27 + "+" + "-" * 27 + "-" * 17 + "+")
+        if (polly_vanilla):
+            print("\r\033[K+" + "-" * 27 + "+" + "-" * 27 + "+" + "-" * 27 +
+                  "+" + "-" * 27 + "+" + "-" * 27 + "-" * 17 + "+")
+        else:
+            print("\r\033[K+" + "-" * 27 + "+" + "-" * 27 +
+                  "+" + "-" * 27 + "+" + "-" * 27 + "-" * 17 + "+")
     else:
-        print("\r\033[K+" + "-" * 27 + "+" + "-" * 27 +
-              "+" + "-" * 27 + "+")
+        if polly_vanilla:
+            print("\r\033[K+" + "-" * 27 + "+" + "-" * 27 + "+" + "-" * 27 +
+                  "+" + "-" * 27 + "+" + "-" * 27 + "+")
+        else:
+            print("\r\033[K+" + "-" * 27 + "+" + "-" * 27 +
+                  "+" + "-" * 27 + "+")
 
 
-def display_row_title(verif, kernel):
-    display_row_line(verif)
+def display_row_title(verif, polly_vanilla, kernel):
+    display_row_line(verif, polly_vanilla)
     if verif:
-        print((f"| {kernel.center(25)} | {'Standard'.center(25)} | "
-               f"{'Kokkos'.center(25)} | {'Polly'.center(25)} | "
-               f"{'Verif'.center(14)} |"))
+        if polly_vanilla:
+            print((f"| {kernel.center(25)} | {'Standard'.center(25)} | "
+                   f"{'Vanilla'.center(25)} | "
+                   f"{'Kokkos'.center(25)} | {'Polly'.center(25)} | "
+                   f"{'Verif'.center(14)} |"))
+        else:
+            print((f"| {kernel.center(25)} | {'Standard'.center(25)} | "
+                   f"{'Kokkos'.center(25)} | {'Polly'.center(25)} | "
+                   f"{'Verif'.center(14)} |"))
     else:
-        print((f"| {kernel.center(25)} | "
-               f"{'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
-    display_row_line(verif)
+        if polly_vanilla:
+            print((f"| {kernel.center(25)} | {'Vanilla'.center(25)} |"
+                   f"{'Kokkos'.center(26)} | {'V/Polly'.center(25)} | "
+                   f"{'K/Polly'.center(25)} |"))
+        else:
+            print((f"| {kernel.center(25)} | "
+                   f"{'Kokkos'.center(25)} | {'Polly'.center(25)} |"))
+    display_row_line(verif, polly_vanilla)
 
 
-def display_row_data(verif,
+def display_row_data(verif, polly_vanilla,
                      kernel,
                      time_std,
+                     time_vanilla,
                      time_kokkos,
                      time_polly,
                      check_str):
     if verif:
-        print((f"| {kernel.center(25)} | {str(time_std).center(25)} | "
-               f"{str(time_kokkos).center(25)} | {str(time_polly).center(25)}"
-               f" | {check_str.center(36)} |"))
-        display_row_line(verif)
+        if polly_vanilla:
+            print((f"| {kernel.center(25)} | "
+                   f"{str(time_std).center(25)} | "
+                   f"{str(time_vanilla).center(25)} | "
+                   f"{str(time_kokkos).center(25)} | "
+                   f"{str(time_polly).center(25)} | "
+                   f"{check_str.center(47)} |"))
+        else:
+            print((f"| {kernel.center(25)} | "
+                   f"{str(time_std).center(25)} | "
+                   f"{str(time_kokkos).center(25)} | "
+                   f"{str(time_polly).center(25)} | "
+                   f"{check_str.center(36)} |"))
+        display_row_line(verif, polly_vanilla)
     else:
-        print((f"| {str(kernel).center(25)} | "
-               f"{str(time_kokkos).center(25)} | "
-               f"{str(time_polly).center(25)} |"))
-        display_row_line(verif)
+        if polly_vanilla:
+            print((f"| {str(kernel).center(25)} | "
+                   f"{str(time_vanilla).center(25)} | "
+                   f"{str(time_kokkos).center(25)} | "
+                   f"{str(time_polly).center(25)} |"))
+        else:
+            print((f"| {str(kernel).center(25)} | "
+                   f"{str(time_kokkos).center(25)} | "
+                   f"{str(time_polly).center(25)} |"))
+        display_row_line(verif, polly_vanilla)
 
 
 def display_row_data_bench(kernel,
+                           statistics_polly_vanilla,
                            statistics_kokkos,
-                           statistics_polly):
+                           statistics_polly,
+                           polly_vanilla):
+    avg_v = med_v = std_dev_v = min_v = max_v = 0
+    if polly_vanilla:
+        avg_v, med_v, std_dev_v, min_v, max_v = statistics_polly_vanilla
     avg_k, med_k, std_dev_k, min_k, max_k = statistics_kokkos
     avg_p, med_p, std_dev_p, min_p, max_p = statistics_polly
-    speedup = avg_k / avg_p if avg_p != 0 else float('inf')
-    print((f"| {COLOR[GREEN]}{str(kernel).center(25)}"
-           f"{COLOR[NO_COLOR]} | {''.center(25)} | {''.center(25)} |"))
-    print((f"| {'speedup'.center(25)} | {str(f'{1}').center(25)} | "
-           f"{str(f'{speedup:,.2f}').center(25)} |"))
-    print((f"| {'average'.center(25)} | {str(f'{avg_k:,.1f}').center(25)} | "
-           f"{str(f'{avg_p:,.1f}').center(25)} |"))
-    print((f"| {'median'.center(25)} | {str(f'{med_k:,.1f}').center(25)} | "
-           f"{str(f'{med_p:,.1f}').center(25)} |"))
-    print((f"| {'standard deviation'.center(25)} | "
-           f"{str(f'{std_dev_k:,.1f}').center(25)} | "
-           f"{str(f'{std_dev_p:,.1f}').center(25)} |"))
-    print((f"| {'minimum'.center(25)} | {str(f'{min_k:,.1f}').center(25)} | "
-           f"{str(f'{min_p:,.1f}').center(25)} |"))
-    print((f"| {'max'.center(25)} | {str(f'{max_k:,.1f}').center(25)} | "
-           f"{str(f'{max_p:,.1f}').center(25)} |"))
-    display_row_line(False)
+    speedup_kp = avg_k / avg_p if avg_p != 0 else float('inf')
+    speedup_vp = 1
+    if polly_vanilla:
+        speedup_vp = avg_v / avg_p if avg_p != 0 else float('inf')
+
+    if polly_vanilla:
+        print((f"| {COLOR[GREEN]}{str(kernel).center(25)}{COLOR[NO_COLOR]} | "
+               f"{''.center(25)} | {''.center(25)} | {''.center(25)} | "
+               f"{''.center(25)} |"))
+        print((f"| {'speedup'.center(25)} | {str(f'{1}').center(25)} | "
+               f"{str(f'{1}').center(25)} | "
+               f"{str(f'{speedup_vp:,.2f}').center(25)} | "
+               f"{str(f'{speedup_kp:,.2f}').center(25)} |"))
+        print((f"| {'average'.center(25)} | "
+               f"{str(f'{avg_v:,.1f}').center(25)} | "
+               f"{str(f'{avg_k:,.1f}').center(25)} | "
+               f"{str(f'{avg_p:,.1f}').center(25)} | "
+               f"{str(f'{avg_p:,.1f}').center(25)} |"))
+        print((f"| {'median'.center(25)} | "
+               f"{str(f'{med_v:,.1f}').center(25)} | "
+               f"{str(f'{med_k:,.1f}').center(25)} | "
+               f"{str(f'{med_p:,.1f}').center(25)} | "
+               f"{str(f'{med_p:,.1f}').center(25)} |"))
+        print((f"| {'standard deviation'.center(25)} | "
+               f"{str(f'{std_dev_v:,.1f}').center(25)} | "
+               f"{str(f'{std_dev_k:,.1f}').center(25)} | "
+               f"{str(f'{std_dev_p:,.1f}').center(25)} | "
+               f"{str(f'{std_dev_p:,.1f}').center(25)} |"))
+        print((f"| {'minimum'.center(25)} | "
+               f"{str(f'{min_v:,.1f}').center(25)} | "
+               f"{str(f'{min_k:,.1f}').center(25)} | "
+               f"{str(f'{min_p:,.1f}').center(25)} | "
+               f"{str(f'{min_p:,.1f}').center(25)} |"))
+        print((f"| {'max'.center(25)} | {str(f'{max_v:,.1f}').center(25)} | "
+               f"{str(f'{max_k:,.1f}').center(25)} | "
+               f"{str(f'{max_p:,.1f}').center(25)} | "
+               f"{str(f'{max_p:,.1f}').center(25)} |"))
+    else:
+        print((f"| {COLOR[GREEN]}{str(kernel).center(25)}"
+               f"{COLOR[NO_COLOR]} | {''.center(25)} | {''.center(25)} |"))
+        print((f"| {'speedup'.center(25)} | {str(f'{1}').center(25)} | "
+               f"{str(f'{speedup_kp:,.2f}').center(25)} |"))
+        print((f"| {'average'.center(25)} | {str(f'{avg_k:,.1f}').center(25)} | "
+               f"{str(f'{avg_p:,.1f}').center(25)} |"))
+        print((f"| {'median'.center(25)} | {str(f'{med_k:,.1f}').center(25)} | "
+               f"{str(f'{med_p:,.1f}').center(25)} |"))
+        print((f"| {'standard deviation'.center(25)} | "
+               f"{str(f'{std_dev_k:,.1f}').center(25)} | "
+               f"{str(f'{std_dev_p:,.1f}').center(25)} |"))
+        print((f"| {'minimum'.center(25)} | {str(f'{min_k:,.1f}').center(25)} | "
+               f"{str(f'{min_p:,.1f}').center(25)} |"))
+        print((f"| {'max'.center(25)} | {str(f'{max_k:,.1f}').center(25)} | "
+               f"{str(f'{max_p:,.1f}').center(25)} |"))
+    display_row_line(False, polly_vanilla)
 
 
 def run_command(command, stdout_file=None, stderr_file=None):
@@ -191,21 +269,30 @@ def compute_hash(fichier):
     return hasher.hexdigest()
 
 
-def check_output(file_std, file_kokkos, file_polly):
+def check_output(file_std, file_polly_vanilla, file_kokkos, file_polly,
+                 polly_vanilla):
     sanitize_zeros(file_std)
+    if polly_vanilla:
+        sanitize_zeros(file_polly_vanilla)
     sanitize_zeros(file_kokkos)
     sanitize_zeros(file_polly)
 
-    hash1 = compute_hash(file_std)
-    hash2 = compute_hash(file_kokkos)
-    hash3 = compute_hash(file_polly)
+    hash_std = compute_hash(file_std)
+    hash_vanilla = compute_hash(file_polly_vanilla) if polly_vanilla else None
+    hash_kokkos = compute_hash(file_kokkos)
+    hash_polly = compute_hash(file_polly)
 
     res = ""
-    if hash1 != hash2:
+    if polly_vanilla:
+        if hash_std != hash_vanilla:
+            res += f"{COLOR[RED]}V{COLOR[NO_COLOR]}"
+        else:
+            res += f"{COLOR[GREEN]}V{COLOR[NO_COLOR]}"
+    if hash_std != hash_kokkos:
         res += f"{COLOR[RED]}K{COLOR[NO_COLOR]}"
     else:
         res += f"{COLOR[GREEN]}K{COLOR[NO_COLOR]}"
-    if hash1 != hash3:
+    if hash_std != hash_polly:
         res += f"{COLOR[RED]}P{COLOR[NO_COLOR]}"
     else:
         res += f"{COLOR[GREEN]}P{COLOR[NO_COLOR]}"
@@ -295,14 +382,24 @@ def run_verif(kernel_dir,
               build_std,
               build_polly_vanilla,
               build_kokkos,
-              build_polly):
+              build_polly,
+              polly_vanilla):
     for kernel in kernels:
         kernel_output_path = f"{output_dir}/{kernel_dir}/{kernel}"
         os.makedirs(kernel_output_path, exist_ok=True)
-        for build, version in [(build_std, "std"),
-                               (build_polly_vanilla, "vanilla"),
-                               (build_kokkos, "kokkos"),
-                               (build_polly, "polly")]:
+
+        versions = []
+        if polly_vanilla:
+            versions = [(build_std, "std"),
+                        (build_polly_vanilla, "vanilla"),
+                        (build_kokkos, "kokkos"),
+                        (build_polly, "polly")]
+        else:
+            versions = [(build_std, "std"),
+                        (build_kokkos, "kokkos"),
+                        (build_polly, "polly")]
+
+        for build, version in versions:
             os.chdir(build)
             print(f"{COLOR[YELLOW]}Building {kernel} "
                   f"{version} version{COLOR[NO_COLOR]}\r", end="")
@@ -325,10 +422,13 @@ def run_verif(kernel_dir,
         check_str = check_output(os.path.join(kernel_output_path,
                                               f"{kernel}_std.out"),
                                  os.path.join(kernel_output_path,
+                                              f"{kernel}_vanilla.out"),
+                                 os.path.join(kernel_output_path,
                                               f"{kernel}_kokkos.out"),
                                  os.path.join(kernel_output_path,
-                                              f"{kernel}_polly.out"))
-        display_row_data(True, kernel, 1, 1, 1, check_str)
+                                              f"{kernel}_polly.out"),
+                                 polly_vanilla)
+        display_row_data(True, polly_vanilla, kernel, 1, 1, 1, 1, check_str)
 
 
 def run_bench(kernel_dir,
@@ -337,14 +437,22 @@ def run_bench(kernel_dir,
               build_polly_vanilla,
               build_kokkos,
               build_polly,
-              nb_iteration):
+              nb_iteration,
+              polly_vanilla):
     for kernel in kernels:
         kernel_output_path = f"{output_dir}/{kernel_dir}/{kernel}"
         os.makedirs(kernel_output_path, exist_ok=True)
         statistics = []
-        for build, version in [(build_kokkos, "kokkos"),
-                               (build_polly_vanilla, "vanilla"),
-                               (build_polly, "polly")]:
+        versions = []
+        if polly_vanilla:
+            versions = [(build_polly_vanilla, "vanilla"),
+                        (build_kokkos, "kokkos"),
+                        (build_polly, "polly")]
+        else:
+            versions = [(build_kokkos, "kokkos"),
+                        (build_polly, "polly")]
+
+        for build, version in versions:
             os.chdir(build)
             print(f"\r\033[K{COLOR[YELLOW]}Building {kernel} "
                   f"{version} version{COLOR[NO_COLOR]}", end="")
@@ -365,7 +473,14 @@ def run_bench(kernel_dir,
                 run_command(exec_command, time_file)
             statistics.append(do_statistics(time_file))
         print("\r\033[K", end="")
-        display_row_data_bench(kernel, statistics[0], statistics[1])
+
+        stats_polly_vanilla = statistics[0] if polly_vanilla else None
+        stats_kokkos = statistics[1] if polly_vanilla else statistics[0]
+        stats_polly = statistics[2] if polly_vanilla else statistics[1]
+
+        display_row_data_bench(
+            kernel, stats_polly_vanilla, stats_kokkos, stats_polly,
+            polly_vanilla)
 
 
 def main():
@@ -400,16 +515,7 @@ def main():
     os.makedirs(build_polly, exist_ok=True)
 
     datasets = {
-        "datamining": ["covariance"],
-        "linear-algebra/blas": ["gemm", "gemver", "gesummv", "symm", "syr2k",
-                                "syrk", "trmm"],
-        "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
-                                   "mvt"],
-        "linear-algebra/solvers": ["cholesky", "durbin", "gramschmidt", "lu",
-                                   "ludcmp", "trisolv"],
-        "medley": ["deriche"],
-        "stencils": ["adi", "fdtd-2d", "heat-3d", "jacobi-1d", "jacobi-2d",
-                     "seidel-2d"]
+        "linear-algebra/blas": ["gemm"],
     }
 
     generate_build_file(polybench_dir, output_dir,
@@ -420,14 +526,16 @@ def main():
                         scheduler)
 
     for kernel_dir, kernels in datasets.items():
-        display_row_title(args.verif, kernel_dir)
+        polly_vanilla = args.cxx_compiler_polly_vanilla != ""
+        display_row_title(args.verif, polly_vanilla, kernel_dir)
         if args.verif:
             run_verif(kernel_dir, kernels, output_dir,
                       build_std, build_polly_vanilla, build_kokkos,
-                      build_polly)
+                      build_polly, polly_vanilla)
         else:
             run_bench(kernel_dir, kernels, output_dir, build_polly_vanilla,
-                      build_kokkos, build_polly, args.nb_iteration)
+                      build_kokkos, build_polly, args.nb_iteration,
+                      polly_vanilla)
 
 
 if __name__ == "__main__":
