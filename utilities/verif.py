@@ -42,6 +42,9 @@ def parse_args():
                         help="Dataset size")
     parser.add_argument("--cxx_compiler", type=str, required=True,
                         help="C++ compiler")
+    parser.add_argument("--cxx_compiler_polly_vanilla", type=str, default="",
+                        required=False,
+                        help="C++ compiler for polly vanilla")
     parser.add_argument("--kokkos_install_dir", type=str, required=True,
                         help="Install directory for Kokkos")
     parser.add_argument("--polybench_dir", type=str, required=True,
@@ -212,9 +215,11 @@ def check_output(file_std, file_kokkos, file_polly):
 def generate_build_file(polybench_dir,
                         output_dir,
                         build_std,
+                        build_polly_vanilla,
                         build_kokkos,
                         build_polly,
                         cxx_compiler,
+                        cxx_compiler_polly_vanilla,
                         kokkos_install_dir,
                         dataset,
                         verif,
@@ -237,6 +242,23 @@ def generate_build_file(polybench_dir,
         run_command(cmake_command_standard, os.path.join(
             output_dir, "cmake_standard.log"))
 
+    # build standard version with polly vanilla
+    if (cxx_compiler_polly_vanilla != ""):
+        print(f"{COLOR[GREEN]}Building standard version with polly vanilla"
+              f"{COLOR[NO_COLOR]}\r", end="")
+        cmake_command_polly_vanilla = (
+            f"cmake -S {polybench_dir} "
+            f"-B {build_polly_vanilla} "
+            f"-DCMAKE_CXX_COMPILER={cxx_compiler_polly_vanilla} "
+            f"-DCMAKE_BUILD_TYPE=Release "
+            f"-DPB_CYCLE_MONITORING=ON "
+            f"-DPB_DUMP_ARRAYS={print_output} "
+            f"-DPB_DATASET_SIZE={dataset} "
+            f"-DPB_USE_POLLY=ON "
+            f"-DPB_USE_VANILLA_POLLY=ON ")
+        run_command(cmake_command_polly_vanilla, os.path.join(
+            output_dir, "cmake_polly_vanilla.log"))
+
     # build kokkos version
     print(f"\r\033[K\r{COLOR[GREEN]}Building Kokkos version"
           f"{COLOR[NO_COLOR]}", end="")
@@ -245,7 +267,8 @@ def generate_build_file(polybench_dir,
                                                  f"-DPB_KOKKOS=ON "
                                                  f"-DPB_KOKKOS_DIR="
                                                  f"{kokkos_install_dir} "
-                                                 f"-DPB_POLLY_SCHEDULER={scheduler} "
+                                                 f"-DPB_POLLY_SCHEDULER={
+                                                     scheduler} "
                                                  f"-DKokkos_ENABLE_SERIAL=ON "
                                                  f"-DKokkos_ENABLE_OPENMP=ON ")
     run_command(cmake_command_kokkos, os.path.join(
@@ -259,7 +282,8 @@ def generate_build_file(polybench_dir,
                                                 f"-DPB_KOKKOS_DIR="
                                                 f"{kokkos_install_dir} "
                                                 f"-DPB_USE_POLLY=ON "
-                                                f"-DPB_POLLY_SCHEDULER={scheduler} "
+                                                f"-DPB_POLLY_SCHEDULER={
+                                                    scheduler} "
                                                 f"-DKokkos_ENABLE_SERIAL=ON ")
     run_command(cmake_command_polly, os.path.join(
         output_dir, "cmake_polly.log"))
@@ -269,12 +293,14 @@ def run_verif(kernel_dir,
               kernels,
               output_dir,
               build_std,
+              build_polly_vanilla,
               build_kokkos,
               build_polly):
     for kernel in kernels:
         kernel_output_path = f"{output_dir}/{kernel_dir}/{kernel}"
         os.makedirs(kernel_output_path, exist_ok=True)
         for build, version in [(build_std, "std"),
+                               (build_polly_vanilla, "vanilla"),
                                (build_kokkos, "kokkos"),
                                (build_polly, "polly")]:
             os.chdir(build)
@@ -308,6 +334,7 @@ def run_verif(kernel_dir,
 def run_bench(kernel_dir,
               kernels,
               output_dir,
+              build_polly_vanilla,
               build_kokkos,
               build_polly,
               nb_iteration):
@@ -316,6 +343,7 @@ def run_bench(kernel_dir,
         os.makedirs(kernel_output_path, exist_ok=True)
         statistics = []
         for build, version in [(build_kokkos, "kokkos"),
+                               (build_polly_vanilla, "vanilla"),
                                (build_polly, "polly")]:
             os.chdir(build)
             print(f"\r\033[K{COLOR[YELLOW]}Building {kernel} "
@@ -346,6 +374,7 @@ def main():
     polybench_dir = args.polybench_dir
     process_dir = args.process_dir
     build_std = os.path.join(process_dir, "build_std")
+    build_polly_vanilla = os.path.join(process_dir, "build_polly_vanilla")
     build_kokkos = os.path.join(process_dir, "build_kokkos")
     build_polly = os.path.join(process_dir, "build_polly")
     output_dir = os.path.join(process_dir, "output")
@@ -366,11 +395,12 @@ def main():
         shutil.rmtree(process_dir)
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(build_std, exist_ok=True)
+    os.makedirs(build_polly_vanilla, exist_ok=True)
     os.makedirs(build_kokkos, exist_ok=True)
     os.makedirs(build_polly, exist_ok=True)
 
     datasets = {
-        "datamining": ["covariance"],
+        # "datamining": ["covariance"],
         "linear-algebra/blas": ["gemm", "gemver", "gesummv", "symm", "syr2k",
                                 "syrk", "trmm"],
         "linear-algebra/kernels": ["2mm", "3mm", "atax", "bicg", "doitgen",
@@ -383,17 +413,20 @@ def main():
     }
 
     generate_build_file(polybench_dir, output_dir,
-                        build_std, build_kokkos, build_polly,
-                        args.cxx_compiler, args.kokkos_install_dir,
-                        args.dataset, args.verif, scheduler)
+                        build_std, build_polly_vanilla, build_kokkos,
+                        build_polly, args.cxx_compiler,
+                        args.cxx_compiler_polly_vanilla,
+                        args.kokkos_install_dir, args.dataset, args.verif,
+                        scheduler)
 
     for kernel_dir, kernels in datasets.items():
         display_row_title(args.verif, kernel_dir)
         if args.verif:
             run_verif(kernel_dir, kernels, output_dir,
-                      build_std, build_kokkos, build_polly)
+                      build_std, build_polly_vanilla, build_kokkos,
+                      build_polly)
         else:
-            run_bench(kernel_dir, kernels, output_dir,
+            run_bench(kernel_dir, kernels, output_dir, build_polly_vanilla,
                       build_kokkos, build_polly, args.nb_iteration)
 
 

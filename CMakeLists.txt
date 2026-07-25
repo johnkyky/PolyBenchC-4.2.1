@@ -24,6 +24,8 @@ set(PB_KOKKOS_DIR
 option(PB_USE_POLLY "Use polly" OFF)
 set(PB_POLLY_SCHEDULER "none" CACHE STRING "Scheduler to use with polly")
 
+option(PB_USE_VANILLA_POLLY "Use vanilla polly" OFF)
+
 if(PB_TIME_MONITORING)
   add_definitions(-DPOLYBENCH_TIME)
   message(STATUS "Time monitoring enabled")
@@ -121,46 +123,51 @@ else()
   set(PB_GPU OFF)
 endif()
 
-if((PB_KOKKOS OR PB_KOKKOS_DIR) AND PB_USE_POLLY)
-  add_definitions(-DPOLYBENCH_USE_POLLY)
+if((PB_KOKKOS OR PB_KOKKOS_DIR OR PB_USE_VANILLA_POLLY) AND PB_USE_POLLY)
+  if(NOT PB_USE_VANILLA_POLLY)
+    add_definitions(-DPOLYBENCH_USE_POLLY)
+  endif()
   message(STATUS "Polly enabled")
 
   add_compile_options(
     "SHELL:-mllvm -polly"
-    "SHELL:-mllvm -polly-manual-scop-detection"
     "SHELL:-mllvm -polly-process-unprofitable"
     "SHELL:-mllvm -polly-stmt-granularity=store"
     "SHELL:-mllvm -polly-export"
     "SHELL:-mllvm -polly-dot"
-    # "SHELL:-mllvm -polly-opt-outer-coincidence=yes"
-    # "SHELL:-mllvm -polly-parallel-force"
-
-    "SHELL:-mllvm -polly-optimizer=${POLLY_SCHEDULER}"
-    # "SHELL:-mllvm -polly-pluto-path=/home/battiston/Phd/pluto/install/bin/pluto"
-    "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile\""
-    # "SHELL:-mllvm -polly-pluto-args=\"--parallel --identity\""
-
-    # "SHELL:-mllvm -polly-detect-reductions=false"
+    "SHELL:-mllvm -polly-print-ast"
     "SHELL:-mllvm -polly-dependences-computeout=0"
     "SHELL:-mllvm -polly-schedule-computeout=0"
     "-mllvm" "-debug-only=polly-pluto,polly-check-parallelism,polly-remove-loop-bound-condition,polly-triangular-loop-fix,polly-remove-loop-versioning,polly-var-fusion,polly-extract-annotations,polly-user-assumptions,polly-array-fusion,polly-scops,polly-detect,polly-openscop-exporter,polly-array-reg2mem,polly-merge-redundant-invariant-loads,polly-lower-instruction-for-reduction,polly-codegen-ppcg"
-    
     "SHELL:-mllvm -polly-disable-multiplicative-reductions"
-    # "SHELL:-mllvm -polly-ast-print-accesses"
-    # "SHELL:-mllvm -polly-kokkos-check-parallelism=true"
-    # "SHELL:-mllvm -polly-codegen-emit-rtc-print"
-    # "SHELL:-mllvm -polly-codegen-emit-params-print"
-    # "SHELL:-mllvm -polly-ast-print-accesses"
-
-    "SHELL:-mllvm -polly-acc-use-shared"
-    "SHELL:-mllvm -polly-acc-use-private"
-    # "SHELL:-mllvm -polly-acc-dump-code"
-
     "SHELL:-mllvm -polly-matmul-opt=false"
-
     "-fno-math-errno"
     # "-g"
   )
+
+  if(NOT PB_USE_VANILLA_POLLY)
+    add_compile_options(
+      "SHELL:-mllvm -polly-manual-scop-detection"
+      # "SHELL:-mllvm -polly-opt-outer-coincidence=yes"
+      # "SHELL:-mllvm -polly-parallel-force"
+
+      "SHELL:-mllvm -polly-optimizer=${POLLY_SCHEDULER}"
+      # "SHELL:-mllvm -polly-pluto-path=/home/battiston/Phd/pluto/install/bin/pluto"
+      "SHELL:-mllvm -polly-pluto-args=\"--parallel --tile\""
+      # "SHELL:-mllvm -polly-pluto-args=\"--parallel --identity\""
+
+      # "SHELL:-mllvm -polly-detect-reductions=false"
+      # "SHELL:-mllvm -polly-ast-print-accesses"
+      # "SHELL:-mllvm -polly-kokkos-check-parallelism=true"
+      # "SHELL:-mllvm -polly-codegen-emit-rtc-print"
+      # "SHELL:-mllvm -polly-codegen-emit-params-print"
+      # "SHELL:-mllvm -polly-ast-print-accesses"
+
+      "SHELL:-mllvm -polly-acc-use-shared"
+      "SHELL:-mllvm -polly-acc-use-private"
+      # "SHELL:-mllvm -polly-acc-dump-code"
+    )
+  endif()
 endif()
 
 if(PB_GPU)
