@@ -131,6 +131,7 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR OR PB_USE_VANILLA_POLLY) AND PB_USE_POLLY)
 
   add_compile_options(
     "SHELL:-mllvm -polly"
+    "SHELL:-mllvm -polly-parallel"
     "SHELL:-mllvm -polly-process-unprofitable"
     "SHELL:-mllvm -polly-stmt-granularity=store"
     "SHELL:-mllvm -polly-export"
@@ -167,6 +168,9 @@ if((PB_KOKKOS OR PB_KOKKOS_DIR OR PB_USE_VANILLA_POLLY) AND PB_USE_POLLY)
       "SHELL:-mllvm -polly-acc-use-private"
       # "SHELL:-mllvm -polly-acc-dump-code"
     )
+  else()
+    find_package(OpenMP REQUIRED)
+    link_libraries(OpenMP::OpenMP_CXX)
   endif()
 endif()
 
