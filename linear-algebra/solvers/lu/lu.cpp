@@ -119,27 +119,50 @@ static void kernel_lu(INT_TYPE n,
 
   polybench_GPU_array_copy_to_device(A);
 
-  const auto policy =
+  const auto policy_single =
       Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, 1);
 
-  Kokkos::parallel_for(
-      policy, KOKKOS_LAMBDA(const INT_TYPE thread_id) {
-        for (INT_TYPE i = 0; i < n; i++) {
-
+  for (INT_TYPE i = 0; i < n; i++) {
+    Kokkos::parallel_for(
+        policy_single, KOKKOS_LAMBDA(const INT_TYPE) {
           for (INT_TYPE j = 0; j < i; j++) {
             for (INT_TYPE k = 0; k < j; k++) {
               d_A(i, j) -= d_A(i, k) * d_A(k, j);
             }
             d_A(i, j) /= d_A(j, j);
           }
+        });
 
-          for (INT_TYPE j = i; j < n; j++) {
-            for (INT_TYPE k = 0; k < i; k++) {
-              d_A(i, j) -= d_A(i, k) * d_A(k, j);
-            }
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(i, n),
+        KOKKOS_LAMBDA(const INT_TYPE j) {
+          for (INT_TYPE k = 0; k < i; k++) {
+            d_A(i, j) -= d_A(i, k) * d_A(k, j);
           }
-        }
-      });
+        });
+  }
+
+  // const auto policy =
+  //     Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, 1);
+
+  // Kokkos::parallel_for(
+  //     policy, KOKKOS_LAMBDA(const INT_TYPE thread_id) {
+  //       for (INT_TYPE i = 0; i < n; i++) {
+  //
+  //         for (INT_TYPE j = 0; j < i; j++) {
+  //           for (INT_TYPE k = 0; k < j; k++) {
+  //             d_A(i, j) -= d_A(i, k) * d_A(k, j);
+  //           }
+  //           d_A(i, j) /= d_A(j, j);
+  //         }
+  //
+  //         for (INT_TYPE j = i; j < n; j++) {
+  //           for (INT_TYPE k = 0; k < i; k++) {
+  //             d_A(i, j) -= d_A(i, k) * d_A(k, j);
+  //           }
+  //         }
+  //       }
+  //     });
 
   polybench_GPU_array_copy_to_host(A);
 

@@ -88,9 +88,9 @@ static void kernel_ludcmp(INT_TYPE n,
       Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, n);
 #endif
 
-  Kokkos::parallel_for<
-      Kokkos::usePolyOpt,
-      "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == p2., n < 1000000">(
+  Kokkos::parallel_for<Kokkos::usePolyOpt,
+                       "p0.l0 == 0, p0.u0 == n, p0.u0 > 10, p0. == p1., p0. == "
+                       "p2., n < 1000000">(
       "kernel", policy_1D,
       KOKKOS_LAMBDA(const INT_TYPE i) {
         for (INT_TYPE j = 0; j < i; j++) {
@@ -177,13 +177,12 @@ static void kernel_ludcmp(INT_TYPE n,
   polybench_GPU_array_copy_to_device(x);
   polybench_GPU_array_copy_to_device(y);
 
-  // Un seul thread pour gouverner tout l'algorithme
-  const auto policy =
+  const auto policy_single =
       Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, 1);
 
-  Kokkos::parallel_for(
-      policy, KOKKOS_LAMBDA(const INT_TYPE thread_id) {
-        for (INT_TYPE i = 0; i < n; i++) {
+  for (INT_TYPE i = 0; i < n; i++) {
+    Kokkos::parallel_for(
+        policy_single, KOKKOS_LAMBDA(const INT_TYPE) {
           for (INT_TYPE j = 0; j < i; j++) {
             DATA_TYPE w = d_A(i, j);
             for (INT_TYPE k = 0; k < j; k++) {
@@ -191,16 +190,21 @@ static void kernel_ludcmp(INT_TYPE n,
             }
             d_A(i, j) = w / d_A(j, j);
           }
+        });
 
-          for (INT_TYPE j = i; j < n; j++) {
-            DATA_TYPE w = d_A(i, j);
-            for (INT_TYPE k = 0; k < i; k++) {
-              w -= d_A(i, k) * d_A(k, j);
-            }
-            d_A(i, j) = w;
+    Kokkos::parallel_for(
+        Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(i, n),
+        KOKKOS_LAMBDA(const INT_TYPE j) {
+          DATA_TYPE w = d_A(i, j);
+          for (INT_TYPE k = 0; k < i; k++) {
+            w -= d_A(i, k) * d_A(k, j);
           }
-        }
+          d_A(i, j) = w;
+        });
+  }
 
+  Kokkos::parallel_for(
+      policy_single, KOKKOS_LAMBDA(const INT_TYPE) {
         for (INT_TYPE i = 0; i < n; i++) {
           DATA_TYPE w = d_b(i);
           for (INT_TYPE j = 0; j < i; j++) {
@@ -208,7 +212,10 @@ static void kernel_ludcmp(INT_TYPE n,
           }
           d_y(i) = w;
         }
+      });
 
+  Kokkos::parallel_for(
+      policy_single, KOKKOS_LAMBDA(const INT_TYPE /*thread_id*/) {
         for (INT_TYPE i = 0; i < n; i++) {
           INT_TYPE row = n - 1 - i;
           DATA_TYPE w = d_y(row);
@@ -218,6 +225,48 @@ static void kernel_ludcmp(INT_TYPE n,
           d_x(row) = w / d_A(row, row);
         }
       });
+
+  // Un seul thread pour gouverner tout l'algorithme
+  // const auto policy =
+  //     Kokkos::RangePolicy<Kokkos::Cuda, Kokkos::IndexType<int64_t>>(0, 1);
+  //
+  // Kokkos::parallel_for(
+  //     policy, KOKKOS_LAMBDA(const INT_TYPE thread_id) {
+  //       for (INT_TYPE i = 0; i < n; i++) {
+  //         for (INT_TYPE j = 0; j < i; j++) {
+  //           DATA_TYPE w = d_A(i, j);
+  //           for (INT_TYPE k = 0; k < j; k++) {
+  //             w -= d_A(i, k) * d_A(k, j);
+  //           }
+  //           d_A(i, j) = w / d_A(j, j);
+  //         }
+  //
+  //         for (INT_TYPE j = i; j < n; j++) {
+  //           DATA_TYPE w = d_A(i, j);
+  //           for (INT_TYPE k = 0; k < i; k++) {
+  //             w -= d_A(i, k) * d_A(k, j);
+  //           }
+  //           d_A(i, j) = w;
+  //         }
+  //       }
+  //
+  //       for (INT_TYPE i = 0; i < n; i++) {
+  //         DATA_TYPE w = d_b(i);
+  //         for (INT_TYPE j = 0; j < i; j++) {
+  //           w -= d_A(i, j) * d_y(j);
+  //         }
+  //         d_y(i) = w;
+  //       }
+  //
+  //       for (INT_TYPE i = 0; i < n; i++) {
+  //         INT_TYPE row = n - 1 - i;
+  //         DATA_TYPE w = d_y(row);
+  //         for (INT_TYPE j = row + 1; j < n; j++) {
+  //           w -= d_A(row, j) * d_x(j);
+  //         }
+  //         d_x(row) = w / d_A(row, row);
+  //       }
+  //     });
 
   polybench_GPU_array_copy_to_host(A);
   polybench_GPU_array_copy_to_host(x);
